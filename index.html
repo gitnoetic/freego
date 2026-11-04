@@ -1,0 +1,713 @@
+<title>隨手圍棋</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
+<style>
+/* Layout: square wooden board on the left, control panel on the right; stacks to one column on phones.
+   Page chrome is a green-grey ink palette; the board itself stays kaya-wood in both themes. */
+:root{
+  --bg:#e7ece6;
+  --surface:#f4f7f2;
+  --raised:#ffffff;
+  --fg:#1c2520;
+  --muted:#5a6a60;
+  --line:#cbd5ca;
+  --accent:#2c5f4a;
+  --accent-fg:#ffffff;
+  --danger:#a63d2a;
+  --font-display:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121815;
+    --surface:#1a221e;
+    --raised:#232d28;
+    --fg:#e5ebe5;
+    --muted:#93a39a;
+    --line:#2e3b34;
+    --accent:#8cc7ab;
+    --accent-fg:#10201a;
+    --danger:#e48d7a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121815;
+  --surface:#1a221e;
+  --raised:#232d28;
+  --fg:#e5ebe5;
+  --muted:#93a39a;
+  --line:#2e3b34;
+  --accent:#8cc7ab;
+  --accent-fg:#10201a;
+  --danger:#e48d7a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg);color:var(--fg);
+  font-family:var(--font-body);font-size:15px;line-height:1.55;
+  padding-block:20px 36px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.app{max-width:1080px;margin:0 auto;display:grid;gap:18px}
+.top{display:flex;align-items:center;gap:8px 20px;flex-wrap:wrap}
+h1{
+  margin:0;display:flex;align-items:center;gap:12px;
+  font-family:var(--font-display);font-weight:900;letter-spacing:.08em;
+  font-size:clamp(1.5rem,4.5vw,2rem);text-wrap:balance;
+}
+.pair{position:relative;width:34px;height:22px;flex:none}
+.pair i{position:absolute;top:0;width:22px;height:22px;border-radius:50%}
+.pair i:first-child{left:0}
+.pair i:last-child{left:12px}
+.top p{margin:0;color:var(--muted);font-size:.9rem;flex:1 1 280px;max-width:60ch}
+
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px;align-items:start}
+@media (max-width:860px){.stage{grid-template-columns:minmax(0,1fr)}}
+.board-col{min-width:0}
+.board-wrap{width:min(100%,max(320px,calc(100dvh - 120px)));aspect-ratio:1;margin-inline:auto;max-width:100%}
+canvas{
+  display:block;width:100%;height:100%;border-radius:10px;
+  box-shadow:0 14px 30px -16px rgba(0,0,0,.55);
+  touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer;
+}
+canvas:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+.panel{
+  min-width:0;display:grid;gap:16px;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;
+}
+.panel h2{margin:0;font-family:var(--font-display);font-size:1.25rem;line-height:1.35;text-wrap:balance}
+.stone-b{background:radial-gradient(circle at 35% 30%,#707070,#1a1a1a 55%,#000)}
+.stone-w{background:radial-gradient(circle at 35% 30%,#fff,#ececec 65%,#bcbcbc);box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}
+.dot{display:inline-block;width:28px;height:28px;border-radius:50%;flex:none}
+.dot.sm{width:20px;height:20px}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.player{
+  display:flex;align-items:center;gap:10px;min-width:0;
+  padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--raised);
+}
+.player.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.player b{display:block;line-height:1.2}
+.player span.cap{font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.status{display:grid;gap:2px}
+#turn{font-weight:700;font-variant-numeric:tabular-nums}
+#msg{min-height:1.6em;font-size:.9rem;color:var(--accent)}
+.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.btn{
+  font:inherit;font-weight:500;min-height:44px;padding:10px 14px;
+  border-radius:10px;border:1px solid var(--line);background:var(--raised);color:var(--fg);cursor:pointer;
+}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.armed{border-color:var(--danger);color:var(--danger)}
+.btn:focus-visible,.opts input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.score,.newbox{display:grid;gap:12px;padding-top:4px}
+.hint{margin:0;font-size:.88rem;color:var(--muted)}
+.srow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.srow b{font-size:1.05rem}
+.srow small{color:var(--muted);font-size:.85rem}
+.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.newbox h2{font-size:1.05rem}
+.seg{display:flex;gap:8px}
+.seg label{position:relative;flex:1}
+.seg input{position:absolute;opacity:0;inset:0;margin:0}
+.seg span{
+  display:block;text-align:center;min-height:44px;padding:10px 6px;border-radius:10px;
+  border:1px solid var(--line);background:var(--raised);cursor:pointer;
+}
+.seg input:checked+span{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.opts{display:grid;gap:8px;font-size:.92rem}
+.opts label{display:flex;align-items:center;gap:10px;min-height:30px;cursor:pointer}
+.opts input{width:18px;height:18px;accent-color:var(--accent);margin:0}
+details{font-size:.9rem;color:var(--muted)}
+summary{cursor:pointer;color:var(--fg);font-weight:500}
+details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
+@media (prefers-reduced-motion:no-preference){
+  .player{transition:border-color .15s,box-shadow .15s}
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <h1><span class="pair" aria-hidden="true"><i class="stone-b"></i><i class="stone-w"></i></span>隨手圍棋</h1>
+    <p>不用註冊、不用登入，打開就能下。兩人在同一台裝置上輪流落子，滑鼠、觸控、手寫筆都可以。</p>
+  </header>
+
+  <main class="stage">
+    <section class="board-col">
+      <div class="board-wrap" id="wrap">
+        <canvas id="board" tabindex="0" role="img" aria-label="圍棋棋盤"></canvas>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="players">
+        <div class="player" id="pB"><span class="dot stone-b"></span><div><b>黑棋</b><span class="cap" id="capB">提 0 子</span></div></div>
+        <div class="player" id="pW"><span class="dot stone-w"></span><div><b>白棋</b><span class="cap" id="capW">提 0 子</span></div></div>
+      </div>
+
+      <div class="status">
+        <div id="turn"></div>
+        <div id="msg" aria-live="polite"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="btnPass" type="button">虛手</button>
+        <button class="btn" id="btnUndo" type="button">悔棋</button>
+        <button class="btn" id="btnResign" type="button">認輸</button>
+      </div>
+
+      <div class="newbox" id="newBox">
+        <h2>新局・棋盤大小</h2>
+        <div class="seg" role="radiogroup" aria-label="棋盤大小">
+          <label><input type="radio" name="size" value="9"><span>9 路</span></label>
+          <label><input type="radio" name="size" value="13"><span>13 路</span></label>
+          <label><input type="radio" name="size" value="19"><span>19 路</span></label>
+        </div>
+        <button class="btn primary" id="btnStart" type="button">開始新局</button>
+      </div>
+
+      <div class="score" id="scoreBox" hidden>
+        <h2 id="scoreTitle"></h2>
+        <div id="tally" class="status">
+          <div class="srow"><span class="dot sm stone-b"></span><b id="totB"></b><small id="detB"></small></div>
+          <div class="srow"><span class="dot sm stone-w"></span><b id="totW"></b><small id="detW"></small></div>
+        </div>
+        <p class="hint" id="scoreHint">點選棋盤上的棋子，可標記或取消死棋。雙方確認後按「確認結果」。</p>
+        <div class="btnrow" id="scoreBtns">
+          <button class="btn primary" id="btnConfirm" type="button">確認結果</button>
+          <button class="btn" id="btnResume" type="button">繼續對局</button>
+        </div>
+      </div>
+
+      <div class="opts">
+        <label><input type="checkbox" id="optTouch"> 觸控時先預覽，再點同一處落子</label>
+        <label><input type="checkbox" id="optSound"> 落子音效</label>
+      </div>
+
+      <details>
+        <summary>規則說明</summary>
+        <ul>
+          <li>黑先白後，輪流把棋子下在線的交叉點上。</li>
+          <li>棋子相鄰的空點叫「氣」，整塊棋沒有氣就會被提走。</li>
+          <li>落子後自己沒有氣（又沒有提掉對方）是禁著點，不能下。</li>
+          <li>打劫：不能立刻提回剛被提的那一子，要先下別處。</li>
+          <li>雙方連續虛手後進入數子，點選棋子標記死棋。</li>
+          <li>採中國規則數子（棋子加圍住的空點），9 路無貼目，13 與 19 路白棋貼 6.5 子。</li>
+        </ul>
+      </details>
+    </aside>
+  </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var canvas = $('board'), ctx = canvas.getContext('2d');
+var KOMI = {9:0, 13:6.5, 19:6.5};
+var NAME = {1:'黑棋', 2:'白棋'};
+var SAVE_KEY = 'suishou-weiqi-game-v1';
+var OPT_KEY = 'suishou-weiqi-opts-v1';
+var LETTERS = 'ABCDEFGHJKLMNOPQRST';
+
+var S = null;
+var ui = {hover:null, preview:null, touchConfirm:true, sound:true, newOpen:false};
+var NB = [];
+var geom = {};
+var bg = null;
+
+/* ---------- game state ---------- */
+function buildNb(n){
+  NB = [];
+  for(var i=0;i<n*n;i++){
+    var c=i%n, r=(i/n)|0, a=[];
+    if(c>0) a.push(i-1);
+    if(c<n-1) a.push(i+1);
+    if(r>0) a.push(i-n);
+    if(r<n-1) a.push(i+n);
+    NB.push(a);
+  }
+}
+function newGame(size){
+  buildNb(size);
+  var b = []; for(var i=0;i<size*size;i++) b.push(0);
+  S = {size:size, board:b, turn:1, caps:{1:0,2:0}, last:-1, ko:-1, passes:0, moveNo:0,
+       phase:'play', dead:null, result:'', resigned:false, history:[]};
+  ui.hover = null; ui.preview = null;
+}
+function snap(){
+  return {board:S.board.slice(), turn:S.turn, caps:{1:S.caps[1], 2:S.caps[2]},
+          last:S.last, ko:S.ko, passes:S.passes, moveNo:S.moveNo};
+}
+function group(b,i){
+  var col=b[i], stones=[i], libs=new Set(), seen=new Set([i]);
+  for(var k=0;k<stones.length;k++){
+    var nbs = NB[stones[k]];
+    for(var j=0;j<nbs.length;j++){
+      var nb=nbs[j], v=b[nb];
+      if(v===0) libs.add(nb);
+      else if(v===col && !seen.has(nb)){ seen.add(nb); stones.push(nb); }
+    }
+  }
+  return {stones:stones, libs:libs};
+}
+function tryMove(board, idx, color, ko){
+  if(board[idx]!==0) return {ok:false, reason:'occupied'};
+  if(idx===ko) return {ok:false, reason:'ko'};
+  var b = board.slice(); b[idx]=color;
+  var opp = 3-color, captured = [];
+  NB[idx].forEach(function(nb){
+    if(b[nb]===opp){
+      var g = group(b,nb);
+      if(g.libs.size===0){ g.stones.forEach(function(s){ b[s]=0; captured.push(s); }); }
+    }
+  });
+  var mine = group(b,idx);
+  if(mine.libs.size===0) return {ok:false, reason:'suicide'};
+  var newKo = -1;
+  if(captured.length===1 && mine.stones.length===1 && mine.libs.size===1) newKo = captured[0];
+  return {ok:true, board:b, captured:captured, ko:newKo};
+}
+function play(idx){
+  if(S.phase!=='play') return;
+  var r = tryMove(S.board, idx, S.turn, S.ko);
+  if(!r.ok){
+    showMsg({occupied:'這裡已經有棋子了', ko:'這是「劫」，不能立刻提回，請先下別處', suicide:'這手沒有氣，不能下（禁著點）'}[r.reason]);
+    ui.preview = null; render();
+    return;
+  }
+  S.history.push(snap());
+  S.board = r.board;
+  S.caps[S.turn] += r.captured.length;
+  S.last = idx; S.ko = r.ko; S.passes = 0; S.moveNo++;
+  S.turn = 3 - S.turn;
+  ui.preview = null;
+  sfx(r.captured.length>0);
+  afterChange();
+  showMsg(r.captured.length ? ('提了 '+r.captured.length+' 子') : '');
+}
+function pass(){
+  if(S.phase!=='play') return;
+  S.history.push(snap());
+  var who = S.turn;
+  S.passes++; S.moveNo++; S.last=-1; S.ko=-1; S.turn=3-S.turn; ui.preview=null;
+  if(S.passes>=2){
+    S.phase='scoring';
+    S.dead = []; for(var i=0;i<S.size*S.size;i++) S.dead.push(0);
+    afterChange();
+    showMsg('雙方連續虛手，進入數子。點選棋子可標記死棋。');
+  } else {
+    afterChange();
+    showMsg(NAME[who]+'虛手');
+  }
+}
+function undo(){
+  if(!S.history.length) return;
+  var h = S.history.pop();
+  S.board=h.board; S.turn=h.turn; S.caps=h.caps; S.last=h.last; S.ko=h.ko; S.passes=h.passes; S.moveNo=h.moveNo;
+  S.phase='play'; S.dead=null; S.result=''; S.resigned=false; ui.preview=null;
+  afterChange();
+  showMsg('已悔棋');
+}
+function resign(){
+  if(S.phase!=='play') return;
+  S.history.push(snap());
+  S.phase='over'; S.resigned=true;
+  S.result = NAME[S.turn]+'認輸，'+NAME[3-S.turn]+'獲勝';
+  ui.preview=null;
+  afterChange();
+}
+function toggleDead(idx){
+  if(S.phase!=='scoring' || S.board[idx]===0) return;
+  var g = group(S.board, idx), val = S.dead[idx] ? 0 : 1;
+  g.stones.forEach(function(s){ S.dead[s]=val; });
+  afterChange();
+}
+function fmt(v){ return Number.isInteger(v) ? String(v) : v.toFixed(1); }
+function computeScore(){
+  var n=S.size, total=n*n;
+  var b = S.board.map(function(v,i){ return (S.dead && S.dead[i]) ? 0 : v; });
+  var terr = [], stones={1:0,2:0}, area={1:0,2:0}, seen=[];
+  for(var i=0;i<total;i++){ terr.push(0); seen.push(0); if(b[i]) stones[b[i]]++; }
+  for(var s=0;s<total;s++){
+    if(b[s]!==0 || seen[s]) continue;
+    var region=[s]; seen[s]=1; var borders=new Set();
+    for(var k=0;k<region.length;k++){
+      NB[region[k]].forEach(function(nb){
+        var v=b[nb];
+        if(v===0){ if(!seen[nb]){ seen[nb]=1; region.push(nb); } }
+        else borders.add(v);
+      });
+    }
+    if(borders.size===1){
+      var owner = Array.from(borders)[0];
+      region.forEach(function(x){ terr[x]=owner; });
+      area[owner]+=region.length;
+    }
+  }
+  var komi = KOMI[n];
+  return {terr:terr, stones:stones, area:area, komi:komi,
+          black:stones[1]+area[1], white:stones[2]+area[2]+komi};
+}
+function verdict(sc){
+  var d = sc.black - sc.white;
+  if(d===0) return '和棋';
+  return d>0 ? ('黑勝 '+fmt(d)+' 子') : ('白勝 '+fmt(-d)+' 子');
+}
+function confirmResult(){
+  if(S.phase!=='scoring') return;
+  S.result = verdict(computeScore());
+  S.phase = 'over';
+  afterChange();
+}
+function resume(){
+  if(S.phase!=='scoring') return;
+  S.phase='play'; S.passes=0; S.dead=null;
+  afterChange();
+  showMsg('繼續對局，輪到'+NAME[S.turn]);
+}
+
+/* ---------- persistence ---------- */
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+function load(){
+  try{
+    var raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    var d = JSON.parse(raw);
+    if(!d || [9,13,19].indexOf(d.size)<0 || !Array.isArray(d.board) || d.board.length!==d.size*d.size || !Array.isArray(d.history) || !d.caps) return false;
+    S = d; buildNb(d.size);
+    return true;
+  }catch(e){ return false; }
+}
+function saveOpts(){ try{ localStorage.setItem(OPT_KEY, JSON.stringify({touch:ui.touchConfirm, sound:ui.sound})); }catch(e){} }
+function loadOpts(){
+  try{
+    var o = JSON.parse(localStorage.getItem(OPT_KEY)||'null');
+    if(o){ ui.touchConfirm = o.touch!==false; ui.sound = o.sound!==false; }
+  }catch(e){}
+}
+
+/* ---------- sound ---------- */
+var actx = null;
+function sfx(captured){
+  if(!ui.sound) return;
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if(actx.state==='suspended') actx.resume();
+    var t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
+    o.type='triangle';
+    o.frequency.setValueAtTime(captured?320:230, t);
+    o.frequency.exponentialRampToValueAtTime(90, t+0.07);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.28, t+0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+0.12);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t+0.14);
+  }catch(e){}
+}
+
+/* ---------- messages ---------- */
+var msgTimer = null;
+function showMsg(t){
+  $('msg').textContent = t || '';
+  clearTimeout(msgTimer);
+  if(t) msgTimer = setTimeout(function(){ $('msg').textContent=''; }, 3500);
+}
+
+/* ---------- drawing ---------- */
+function roundRectPath(x,ox,oy,w,h,r){
+  x.beginPath();
+  x.moveTo(r,0); x.lineTo(w-r,0); x.quadraticCurveTo(w,0,w,r);
+  x.lineTo(w,h-r); x.quadraticCurveTo(w,h,w-r,h);
+  x.lineTo(r,h); x.quadraticCurveTo(0,h,0,h-r);
+  x.lineTo(0,r); x.quadraticCurveTo(0,0,r,0); x.closePath();
+}
+function starPoints(n){
+  if(n===9) return [[2,2],[6,2],[2,6],[6,6],[4,4]];
+  var a = n===13 ? [3,6,9] : [3,9,15], out=[];
+  a.forEach(function(r){ a.forEach(function(c){ out.push([c,r]); }); });
+  return out;
+}
+function buildBg(){
+  var css=geom.css, dpr=geom.dpr, pad=geom.pad, cell=geom.cell, n=S.size;
+  var c = document.createElement('canvas');
+  c.width = canvas.width; c.height = canvas.height;
+  var x = c.getContext('2d');
+  x.scale(dpr,dpr);
+  var grd = x.createLinearGradient(0,0,css,css);
+  grd.addColorStop(0,'#e7bf73'); grd.addColorStop(1,'#d2a04d');
+  roundRectPath(x,0,0,css,css,10); x.fillStyle=grd; x.fill();
+  x.save(); roundRectPath(x,0,0,css,css,10); x.clip();
+  var seed=7;
+  var rnd=function(){ seed=(seed*16807)%2147483647; return seed/2147483647; };
+  for(var i=0;i<70;i++){
+    var y=rnd()*css, amp=rnd()*5;
+    x.strokeStyle='rgba(120,76,20,'+(0.04+rnd()*0.06)+')';
+    x.lineWidth=0.6+rnd()*1.6;
+    x.beginPath(); x.moveTo(0,y);
+    x.bezierCurveTo(css*0.3,y+amp*(rnd()-0.5)*6, css*0.7,y+amp*(rnd()-0.5)*6, css,y+(rnd()-0.5)*8);
+    x.stroke();
+  }
+  x.restore();
+  x.strokeStyle='#3b2a14';
+  var lw = Math.max(0.8, cell*0.045);
+  x.lineWidth = lw;
+  for(var k=0;k<n;k++){
+    var p = pad + k*cell;
+    x.beginPath(); x.moveTo(pad,p); x.lineTo(pad+(n-1)*cell,p); x.stroke();
+    x.beginPath(); x.moveTo(p,pad); x.lineTo(p,pad+(n-1)*cell); x.stroke();
+  }
+  x.lineWidth = lw*1.9;
+  x.strokeRect(pad,pad,(n-1)*cell,(n-1)*cell);
+  x.fillStyle='#3b2a14';
+  starPoints(n).forEach(function(pt){
+    x.beginPath(); x.arc(pad+pt[0]*cell, pad+pt[1]*cell, cell*0.11, 0, Math.PI*2); x.fill();
+  });
+  x.fillStyle='rgba(59,42,20,0.78)';
+  x.font = Math.max(9, cell*0.34)+'px "Noto Sans TC", sans-serif';
+  x.textAlign='center'; x.textBaseline='middle';
+  for(var j=0;j<n;j++){
+    var q = pad + j*cell;
+    x.fillText(LETTERS[j], q, pad*0.42);
+    x.fillText(LETTERS[j], q, css-pad*0.42);
+    x.fillText(String(n-j), pad*0.42, q);
+    x.fillText(String(n-j), css-pad*0.42, q);
+  }
+  bg = c;
+}
+function layout(){
+  var css = Math.floor($('wrap').clientWidth);
+  if(css<50) return;
+  var dpr = Math.min(window.devicePixelRatio||1, 3);
+  canvas.width = Math.round(css*dpr); canvas.height = Math.round(css*dpr);
+  var pad = Math.max(css*0.055, 18);
+  geom = {css:css, dpr:dpr, pad:pad, cell:(css-2*pad)/(S.size-1)};
+  buildBg();
+}
+function drawStone(x,y,color,alpha){
+  var r = geom.cell*0.47;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle='rgba(40,25,5,0.3)';
+  ctx.beginPath(); ctx.arc(x+r*0.08, y+r*0.13, r, 0, Math.PI*2); ctx.fill();
+  var g;
+  if(color===1){
+    g = ctx.createRadialGradient(x-r*0.35,y-r*0.4,r*0.1,x,y,r);
+    g.addColorStop(0,'#6e6e6e'); g.addColorStop(0.5,'#1c1c1c'); g.addColorStop(1,'#000');
+  } else {
+    g = ctx.createRadialGradient(x-r*0.35,y-r*0.4,r*0.1,x,y,r);
+    g.addColorStop(0,'#ffffff'); g.addColorStop(0.7,'#ececec'); g.addColorStop(1,'#bdbdbd');
+  }
+  ctx.fillStyle=g;
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  if(color===2){ ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=0.7; ctx.stroke(); }
+  ctx.restore();
+}
+function render(){
+  if(!geom.css || !bg) return;
+  var css=geom.css, dpr=geom.dpr, pad=geom.pad, cell=geom.cell, n=S.size;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,css,css);
+  ctx.drawImage(bg,0,0,css,css);
+  var px=function(i){ return pad+(i%n)*cell; };
+  var py=function(i){ return pad+((i/n)|0)*cell; };
+  var sc = S.phase!=='play' ? computeScore() : null;
+  var i, v;
+  if(sc){
+    var sz = cell*0.3;
+    for(i=0;i<n*n;i++){
+      var o = sc.terr[i];
+      if(!o) continue;
+      if(o===1){ ctx.fillStyle='rgba(15,15,15,0.88)'; ctx.fillRect(px(i)-sz/2, py(i)-sz/2, sz, sz); }
+      else { ctx.fillStyle='#fff'; ctx.fillRect(px(i)-sz/2, py(i)-sz/2, sz, sz); ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.lineWidth=0.8; ctx.strokeRect(px(i)-sz/2, py(i)-sz/2, sz, sz); }
+    }
+  }
+  for(i=0;i<n*n;i++){
+    v = S.board[i];
+    if(v) drawStone(px(i), py(i), v, (S.dead && S.dead[i]) ? 0.38 : 1);
+  }
+  if(S.phase==='play' && S.last>=0 && S.board[S.last]){
+    ctx.fillStyle='#e5483a';
+    ctx.beginPath(); ctx.arc(px(S.last), py(S.last), cell*0.14, 0, Math.PI*2); ctx.fill();
+  }
+  if(S.phase==='play' && S.ko>=0){
+    var ks = cell*0.36;
+    ctx.strokeStyle='rgba(180,40,25,0.9)'; ctx.lineWidth=Math.max(1.2,cell*0.06);
+    ctx.strokeRect(px(S.ko)-ks/2, py(S.ko)-ks/2, ks, ks);
+  }
+  if(S.phase==='play'){
+    var g = ui.preview!=null ? ui.preview : ui.hover;
+    if(g!=null && S.board[g]===0){
+      drawStone(px(g), py(g), S.turn, ui.preview!=null ? 0.62 : 0.45);
+      if(ui.preview!=null){
+        ctx.strokeStyle='rgba(44,95,74,0.95)'; ctx.lineWidth=Math.max(1.5,cell*0.07);
+        ctx.beginPath(); ctx.arc(px(g), py(g), cell*0.56, 0, Math.PI*2); ctx.stroke();
+      }
+    }
+  }
+}
+
+/* ---------- UI sync ---------- */
+var resignArmed = false, resignTimer = null;
+function disarm(){
+  resignArmed=false; clearTimeout(resignTimer);
+  var b=$('btnResign'); b.textContent='認輸'; b.classList.remove('armed');
+}
+function updateUI(){
+  var play = S.phase==='play';
+  $('turn').textContent = play ? ('輪到'+NAME[S.turn]+' · 第 '+(S.moveNo+1)+' 手') : (S.phase==='scoring' ? '數子中' : '對局結束');
+  $('capB').textContent = '提 '+S.caps[1]+' 子';
+  $('capW').textContent = '提 '+S.caps[2]+' 子';
+  $('pB').classList.toggle('active', play && S.turn===1);
+  $('pW').classList.toggle('active', play && S.turn===2);
+  $('btnPass').disabled = !play;
+  $('btnResign').disabled = !play;
+  $('btnUndo').disabled = S.history.length===0;
+  $('scoreBox').hidden = play;
+  if(!play){
+    disarm();
+    if(S.resigned){
+      $('scoreTitle').textContent = S.result;
+      $('tally').hidden = true; $('scoreHint').hidden = true; $('scoreBtns').hidden = true;
+    } else {
+      var sc = computeScore(), over = S.phase==='over';
+      $('tally').hidden = false;
+      $('scoreTitle').textContent = over ? S.result : ('目前：'+verdict(sc));
+      $('totB').textContent = '黑 '+fmt(sc.black)+' 子';
+      $('detB').textContent = '棋 '+sc.stones[1]+' ＋ 地 '+sc.area[1];
+      $('totW').textContent = '白 '+fmt(sc.white)+' 子';
+      $('detW').textContent = '棋 '+sc.stones[2]+' ＋ 地 '+sc.area[2]+(sc.komi ? ' ＋ 貼目 '+fmt(sc.komi) : '（無貼目）');
+      $('scoreHint').hidden = over; $('scoreBtns').hidden = over;
+    }
+  }
+  canvas.setAttribute('aria-label', '圍棋棋盤，'+S.size+' 路，'+$('turn').textContent);
+}
+function afterChange(){ updateUI(); render(); save(); }
+
+/* ---------- input ---------- */
+function hit(e){
+  var rect = canvas.getBoundingClientRect();
+  var x = (e.clientX-rect.left)*(geom.css/rect.width);
+  var y = (e.clientY-rect.top)*(geom.css/rect.height);
+  var n = S.size;
+  var c = Math.round((x-geom.pad)/geom.cell), r = Math.round((y-geom.pad)/geom.cell);
+  if(c<0||r<0||c>=n||r>=n) return null;
+  return r*n+c;
+}
+function commit(idx, type){
+  if(idx==null){ ui.preview=null; render(); return; }
+  if(S.phase==='scoring'){ toggleDead(idx); return; }
+  if(S.phase!=='play') return;
+  var touch = (type==='touch' || type==='pen');
+  if(touch && ui.touchConfirm){
+    if(ui.preview===idx){ play(idx); return; }
+    if(S.board[idx]!==0){ showMsg('這裡已經有棋子了'); ui.preview=null; render(); return; }
+    ui.preview = idx;
+    showMsg('再點一次同一處，即可落子');
+    render();
+    return;
+  }
+  play(idx);
+}
+var pressed = false;
+canvas.addEventListener('pointerdown', function(e){
+  if(e.button>0) return;
+  pressed = true;
+  try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
+  ui.hover = hit(e); render();
+  e.preventDefault();
+});
+canvas.addEventListener('pointermove', function(e){
+  if(e.pointerType==='mouse' || pressed){ ui.hover = hit(e); render(); }
+});
+canvas.addEventListener('pointerup', function(e){
+  if(!pressed) return;
+  pressed = false;
+  var idx = hit(e);
+  if(e.pointerType!=='mouse') ui.hover = null;
+  commit(idx, e.pointerType);
+});
+canvas.addEventListener('pointercancel', function(){ pressed=false; ui.hover=null; render(); });
+canvas.addEventListener('pointerleave', function(e){
+  if(e.pointerType==='mouse' && !pressed){ ui.hover=null; render(); }
+});
+canvas.addEventListener('keydown', function(e){
+  var n=S.size, c, r;
+  if(ui.hover==null){ c=(n-1)>>1; r=c; } else { c=ui.hover%n; r=(ui.hover/n)|0; }
+  var handled=true;
+  if(e.key==='ArrowLeft') c=Math.max(0,c-1);
+  else if(e.key==='ArrowRight') c=Math.min(n-1,c+1);
+  else if(e.key==='ArrowUp') r=Math.max(0,r-1);
+  else if(e.key==='ArrowDown') r=Math.min(n-1,r+1);
+  else if(e.key==='Enter' || e.key===' '){ if(ui.hover!=null) commit(ui.hover,'mouse'); e.preventDefault(); return; }
+  else handled=false;
+  if(handled){ ui.hover=r*n+c; render(); e.preventDefault(); }
+});
+canvas.addEventListener('blur', function(){ ui.hover=null; render(); });
+
+$('btnPass').addEventListener('click', pass);
+$('btnUndo').addEventListener('click', undo);
+$('btnResign').addEventListener('click', function(){
+  if(!resignArmed){
+    resignArmed=true;
+    var b=$('btnResign'); b.textContent='再點一次確認認輸'; b.classList.add('armed');
+    resignTimer=setTimeout(disarm,3000);
+  } else { disarm(); resign(); }
+});
+function syncSizeRadios(){
+  var radios = document.getElementsByName('size');
+  for(var i=0;i<radios.length;i++) radios[i].checked = (parseInt(radios[i].value,10)===S.size);
+}
+var startArmed = false, startTimer = null;
+function disarmStart(){
+  startArmed=false; clearTimeout(startTimer);
+  var b=$('btnStart'); b.textContent='開始新局'; b.classList.remove('armed');
+}
+$('btnStart').addEventListener('click', function(){
+  var inProgress = S.phase!=='over' && S.moveNo>0;
+  if(inProgress && !startArmed){
+    startArmed=true;
+    var b=$('btnStart'); b.textContent='目前對局會清除，再點一次確認'; b.classList.add('armed');
+    startTimer=setTimeout(disarmStart,3000);
+    return;
+  }
+  disarmStart();
+  var radios = document.getElementsByName('size'), size = S.size;
+  for(var i=0;i<radios.length;i++) if(radios[i].checked) size = parseInt(radios[i].value,10);
+  newGame(size);
+  layout();
+  syncSizeRadios();
+  afterChange();
+  showMsg('新局開始，黑棋先行');
+});
+$('btnConfirm').addEventListener('click', confirmResult);
+$('btnResume').addEventListener('click', resume);
+$('optTouch').addEventListener('change', function(e){ ui.touchConfirm=e.target.checked; ui.preview=null; saveOpts(); render(); });
+$('optSound').addEventListener('change', function(e){ ui.sound=e.target.checked; saveOpts(); });
+
+/* ---------- start ---------- */
+loadOpts();
+$('optTouch').checked = ui.touchConfirm;
+$('optSound').checked = ui.sound;
+var restored = load();
+if(!restored) newGame(Math.min(window.innerWidth, window.innerHeight) < 560 ? 13 : 19);
+layout();
+syncSizeRadios();
+updateUI();
+render();
+if(restored && S.moveNo>0) showMsg('已接續上次的對局');
+if(window.ResizeObserver){
+  new ResizeObserver(function(){ layout(); render(); }).observe($('wrap'));
+} else {
+  window.addEventListener('resize', function(){ layout(); render(); });
+}
+if(document.fonts && document.fonts.ready){ document.fonts.ready.then(function(){ layout(); render(); }); }
+})();
+</script>
