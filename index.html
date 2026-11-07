@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>隨手圍棋</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
@@ -44,6 +49,8 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0}
 body{
   background:var(--bg);color:var(--fg);
   font-family:var(--font-body);font-size:15px;line-height:1.55;
@@ -95,7 +102,7 @@ canvas:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .status{display:grid;gap:2px}
 #turn{font-weight:700;font-variant-numeric:tabular-nums}
 #msg{min-height:1.6em;font-size:.9rem;color:var(--accent)}
-.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btn{
   font:inherit;font-weight:500;min-height:44px;padding:10px 14px;
   border-radius:10px;border:1px solid var(--line);background:var(--raised);color:var(--fg);cursor:pointer;
@@ -106,7 +113,10 @@ canvas:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .btn.armed{border-color:var(--danger);color:var(--danger)}
 .btn:focus-visible,.opts input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-.score,.newbox{display:grid;gap:12px;padding-top:4px}
+.score,.newbox,.setupbox{display:grid;gap:12px;padding-top:4px}
+.setupbox{border-top:1px dashed var(--line);padding-top:16px}
+.setupbox h2{font-size:1.05rem}
+.setupbox .lab{margin:0;font-size:.85rem;color:var(--muted)}
 .hint{margin:0;font-size:.88rem;color:var(--muted)}
 .srow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
 .srow b{font-size:1.05rem}
@@ -157,10 +167,32 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
         <div id="msg" aria-live="polite"></div>
       </div>
 
-      <div class="actions">
+      <div class="actions" id="actions">
         <button class="btn" id="btnPass" type="button">虛手</button>
         <button class="btn" id="btnUndo" type="button">悔棋</button>
         <button class="btn" id="btnResign" type="button">認輸</button>
+        <button class="btn" id="btnSetup" type="button">擺棋</button>
+      </div>
+
+      <div class="setupbox" id="setupBox" hidden>
+        <h2>擺棋模式</h2>
+        <p class="hint">選好棋子後點棋盤放置，黑白不用輪流。再點一次同色棋子，或用橡皮擦，就能拿掉；電腦上按滑鼠右鍵也能直接拿掉。</p>
+        <p class="lab">擺放</p>
+        <div class="seg" role="radiogroup" aria-label="擺放工具">
+          <label><input type="radio" name="tool" value="b"><span>黑子</span></label>
+          <label><input type="radio" name="tool" value="w"><span>白子</span></label>
+          <label><input type="radio" name="tool" value="e"><span>橡皮擦</span></label>
+        </div>
+        <p class="lab">開始演練後誰先下</p>
+        <div class="seg" role="radiogroup" aria-label="先手">
+          <label><input type="radio" name="first" value="1"><span>黑先</span></label>
+          <label><input type="radio" name="first" value="2"><span>白先</span></label>
+        </div>
+        <div class="btnrow">
+          <button class="btn" id="btnSetupUndo" type="button">撤銷一步</button>
+          <button class="btn" id="btnSetupClear" type="button">清空棋盤</button>
+        </div>
+        <button class="btn primary" id="btnSetupStart" type="button">開始演練</button>
       </div>
 
       <div class="newbox" id="newBox">
@@ -170,7 +202,10 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
           <label><input type="radio" name="size" value="13"><span>13 路</span></label>
           <label><input type="radio" name="size" value="19"><span>19 路</span></label>
         </div>
-        <button class="btn primary" id="btnStart" type="button">開始新局</button>
+        <div class="btnrow">
+          <button class="btn primary" id="btnStart" type="button">開始新局</button>
+          <button class="btn" id="btnSetupNew" type="button">空盤擺棋</button>
+        </div>
       </div>
 
       <div class="score" id="scoreBox" hidden>
@@ -195,6 +230,7 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
         <summary>規則說明</summary>
         <ul>
           <li>黑先白後，輪流把棋子下在線的交叉點上。</li>
+          <li>想演練棋形：按「擺棋」可自由放黑白子、拿掉棋子，擺好後按「開始演練」，就回到一黑一白的正常對局。</li>
           <li>棋子相鄰的空點叫「氣」，整塊棋沒有氣就會被提走。</li>
           <li>落子後自己沒有氣（又沒有提掉對方）是禁著點，不能下。</li>
           <li>打劫：不能立刻提回剛被提的那一子，要先下別處。</li>
@@ -218,7 +254,7 @@ var OPT_KEY = 'suishou-weiqi-opts-v1';
 var LETTERS = 'ABCDEFGHJKLMNOPQRST';
 
 var S = null;
-var ui = {hover:null, preview:null, touchConfirm:true, sound:true, newOpen:false};
+var ui = {hover:null, preview:null, touchConfirm:true, sound:true, newOpen:false, tool:'b', bad:null};
 var NB = [];
 var geom = {};
 var bg = null;
@@ -235,12 +271,12 @@ function buildNb(n){
     NB.push(a);
   }
 }
-function newGame(size){
+function newGame(size, phase){
   buildNb(size);
   var b = []; for(var i=0;i<size*size;i++) b.push(0);
   S = {size:size, board:b, turn:1, caps:{1:0,2:0}, last:-1, ko:-1, passes:0, moveNo:0,
-       phase:'play', dead:null, result:'', resigned:false, history:[]};
-  ui.hover = null; ui.preview = null;
+       phase:phase||'play', setupHist:[], dead:null, result:'', resigned:false, history:[]};
+  ui.hover = null; ui.preview = null; ui.bad = null;
 }
 function snap(){
   return {board:S.board.slice(), turn:S.turn, caps:{1:S.caps[1], 2:S.caps[2]},
@@ -309,6 +345,7 @@ function pass(){
   }
 }
 function undo(){
+  if(S.phase==='setup'){ setupUndo(); return; }
   if(!S.history.length) return;
   var h = S.history.pop();
   S.board=h.board; S.turn=h.turn; S.caps=h.caps; S.last=h.last; S.ko=h.ko; S.passes=h.passes; S.moveNo=h.moveNo;
@@ -374,6 +411,61 @@ function resume(){
   showMsg('繼續對局，輪到'+NAME[S.turn]);
 }
 
+/* ---------- setup (teaching) mode ---------- */
+function hasWork(){ return S.phase!=='over' && (S.moveNo>0 || S.board.some(function(v){ return v!==0; })); }
+function setupPush(){ S.setupHist.push(S.board.slice()); if(S.setupHist.length>300) S.setupHist.shift(); }
+function enterSetup(){
+  S.phase='setup'; S.history=[]; S.setupHist=[]; S.caps={1:0,2:0};
+  S.last=-1; S.ko=-1; S.passes=0; S.moveNo=0; S.dead=null; S.result=''; S.resigned=false;
+  ui.preview=null; ui.bad=null;
+  afterChange();
+  showMsg('擺棋模式：選黑子、白子或橡皮擦，再點棋盤');
+}
+function setupPlace(idx){
+  var cur = S.board[idx], want = ui.tool==='b' ? 1 : (ui.tool==='w' ? 2 : 0);
+  if(cur===want){ if(want===0) return; want=0; }
+  setupPush();
+  S.board[idx]=want; ui.bad=null; ui.preview=null;
+  sfx(false);
+  afterChange();
+}
+function setupErase(idx){
+  if(!S.board[idx]) return;
+  setupPush(); S.board[idx]=0; ui.bad=null;
+  afterChange();
+}
+function setupUndo(){
+  if(!S.setupHist.length) return;
+  S.board = S.setupHist.pop(); ui.bad=null;
+  afterChange();
+}
+function setupClear(){
+  if(!S.board.some(function(v){ return v!==0; })) return;
+  setupPush();
+  for(var i=0;i<S.board.length;i++) S.board[i]=0;
+  ui.bad=null;
+  afterChange();
+}
+function startPractice(){
+  var bad=[], seen={};
+  for(var i=0;i<S.board.length;i++){
+    if(S.board[i] && !seen[i]){
+      var g = group(S.board,i);
+      g.stones.forEach(function(s){ seen[s]=1; });
+      if(g.libs.size===0) bad = bad.concat(g.stones);
+    }
+  }
+  if(bad.length){
+    ui.bad = bad; render();
+    showMsg('紅圈的棋子沒有氣，請先拿掉或調整，再開始演練');
+    return;
+  }
+  S.phase='play'; S.history=[]; S.caps={1:0,2:0}; S.last=-1; S.ko=-1; S.passes=0; S.moveNo=0;
+  S.dead=null; ui.bad=null; ui.preview=null;
+  afterChange();
+  showMsg('開始演練，輪到'+NAME[S.turn]);
+}
+
 /* ---------- persistence ---------- */
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
 function load(){
@@ -383,6 +475,7 @@ function load(){
     var d = JSON.parse(raw);
     if(!d || [9,13,19].indexOf(d.size)<0 || !Array.isArray(d.board) || d.board.length!==d.size*d.size || !Array.isArray(d.history) || !d.caps) return false;
     S = d; buildNb(d.size);
+    S.setupHist = Array.isArray(S.setupHist) ? S.setupHist : [];
     return true;
   }catch(e){ return false; }
 }
@@ -518,7 +611,7 @@ function render(){
   ctx.drawImage(bg,0,0,css,css);
   var px=function(i){ return pad+(i%n)*cell; };
   var py=function(i){ return pad+((i/n)|0)*cell; };
-  var sc = S.phase!=='play' ? computeScore() : null;
+  var sc = (S.phase==='scoring' || S.phase==='over') ? computeScore() : null;
   var i, v;
   if(sc){
     var sz = cell*0.3;
@@ -536,6 +629,20 @@ function render(){
   if(S.phase==='play' && S.last>=0 && S.board[S.last]){
     ctx.fillStyle='#e5483a';
     ctx.beginPath(); ctx.arc(px(S.last), py(S.last), cell*0.14, 0, Math.PI*2); ctx.fill();
+  }
+  if(S.phase==='setup'){
+    var ring = function(p){
+      ctx.strokeStyle='rgba(200,40,25,0.95)'; ctx.lineWidth=Math.max(2,cell*0.08);
+      ctx.beginPath(); ctx.arc(px(p), py(p), cell*0.54, 0, Math.PI*2); ctx.stroke();
+    };
+    if(ui.bad) ui.bad.forEach(ring);
+    var h = ui.hover;
+    if(h!=null){
+      var want = ui.tool==='b' ? 1 : (ui.tool==='w' ? 2 : 0);
+      if(S.board[h]===0){ if(want) drawStone(px(h), py(h), want, 0.5); }
+      else if(S.board[h]===want || want===0) ring(h);
+      else drawStone(px(h), py(h), want, 0.5);
+    }
   }
   if(S.phase==='play' && S.ko>=0){
     var ks = cell*0.36;
@@ -562,7 +669,10 @@ function disarm(){
 }
 function updateUI(){
   var play = S.phase==='play';
-  $('turn').textContent = play ? ('輪到'+NAME[S.turn]+' · 第 '+(S.moveNo+1)+' 手') : (S.phase==='scoring' ? '數子中' : '對局結束');
+  var setup = S.phase==='setup', scoring = !play && !setup;
+  var stoneCount = 0; for(var q=0;q<S.board.length;q++) if(S.board[q]) stoneCount++;
+  $('turn').textContent = setup ? ('擺棋模式 · 盤上 '+stoneCount+' 子')
+    : (play ? ('輪到'+NAME[S.turn]+' · 第 '+(S.moveNo+1)+' 手') : (S.phase==='scoring' ? '數子中' : '對局結束'));
   $('capB').textContent = '提 '+S.caps[1]+' 子';
   $('capW').textContent = '提 '+S.caps[2]+' 子';
   $('pB').classList.toggle('active', play && S.turn===1);
@@ -570,8 +680,17 @@ function updateUI(){
   $('btnPass').disabled = !play;
   $('btnResign').disabled = !play;
   $('btnUndo').disabled = S.history.length===0;
-  $('scoreBox').hidden = play;
-  if(!play){
+  $('scoreBox').hidden = !scoring;
+  $('actions').hidden = setup;
+  $('setupBox').hidden = !setup;
+  if(setup){
+    $('btnSetupUndo').disabled = S.setupHist.length===0;
+    $('btnSetupClear').disabled = stoneCount===0;
+    var tr = document.getElementsByName('tool'), fr = document.getElementsByName('first'), k;
+    for(k=0;k<tr.length;k++) tr[k].checked = (tr[k].value===ui.tool);
+    for(k=0;k<fr.length;k++) fr[k].checked = (parseInt(fr[k].value,10)===S.turn);
+  }
+  if(scoring){
     disarm();
     if(S.resigned){
       $('scoreTitle').textContent = S.result;
@@ -603,6 +722,7 @@ function hit(e){
 }
 function commit(idx, type){
   if(idx==null){ ui.preview=null; render(); return; }
+  if(S.phase==='setup'){ setupPlace(idx); return; }
   if(S.phase==='scoring'){ toggleDead(idx); return; }
   if(S.phase!=='play') return;
   var touch = (type==='touch' || type==='pen');
@@ -650,6 +770,13 @@ canvas.addEventListener('keydown', function(e){
   else handled=false;
   if(handled){ ui.hover=r*n+c; render(); e.preventDefault(); }
 });
+canvas.addEventListener('contextmenu', function(e){
+  if(S.phase!=='setup') return;
+  e.preventDefault();
+  if(e.pointerType==='touch' || e.pointerType==='pen') return;
+  var i = hit(e);
+  if(i!=null) setupErase(i);
+});
 canvas.addEventListener('blur', function(){ ui.hover=null; render(); });
 
 $('btnPass').addEventListener('click', pass);
@@ -671,10 +798,10 @@ function disarmStart(){
   var b=$('btnStart'); b.textContent='開始新局'; b.classList.remove('armed');
 }
 $('btnStart').addEventListener('click', function(){
-  var inProgress = S.phase!=='over' && S.moveNo>0;
+  var inProgress = hasWork();
   if(inProgress && !startArmed){
     startArmed=true;
-    var b=$('btnStart'); b.textContent='目前對局會清除，再點一次確認'; b.classList.add('armed');
+    var b=$('btnStart'); b.textContent='再點一次確認'; b.classList.add('armed');
     startTimer=setTimeout(disarmStart,3000);
     return;
   }
@@ -686,6 +813,32 @@ $('btnStart').addEventListener('click', function(){
   syncSizeRadios();
   afterChange();
   showMsg('新局開始，黑棋先行');
+});
+function guard(id, idle, ask, need, fn){
+  var b = $(id), armed = false, t = null;
+  function off(){ armed=false; clearTimeout(t); b.textContent=idle; b.classList.remove('armed'); }
+  b.addEventListener('click', function(){
+    if(need() && !armed){ armed=true; b.textContent=ask; b.classList.add('armed'); t=setTimeout(off,3000); return; }
+    off(); fn();
+  });
+}
+guard('btnSetupNew', '空盤擺棋', '再點一次確認', hasWork, function(){
+  var radios = document.getElementsByName('size'), size = S.size;
+  for(var i=0;i<radios.length;i++) if(radios[i].checked) size = parseInt(radios[i].value,10);
+  newGame(size, 'setup');
+  layout();
+  syncSizeRadios();
+  afterChange();
+  showMsg('擺棋模式：選黑子、白子或橡皮擦，再點棋盤');
+});
+guard('btnSetup', '擺棋', '再點一次進入擺棋', function(){ return S.phase==='play' && S.history.length>0; }, enterSetup);
+$('btnSetupUndo').addEventListener('click', setupUndo);
+$('btnSetupClear').addEventListener('click', setupClear);
+$('btnSetupStart').addEventListener('click', startPractice);
+$('setupBox').addEventListener('change', function(e){
+  var t = e.target;
+  if(t.name==='tool'){ ui.tool = t.value; render(); }
+  else if(t.name==='first'){ S.turn = parseInt(t.value,10); save(); }
 });
 $('btnConfirm').addEventListener('click', confirmResult);
 $('btnResume').addEventListener('click', resume);
@@ -711,3 +864,5 @@ if(window.ResizeObserver){
 if(document.fonts && document.fonts.ready){ document.fonts.ready.then(function(){ layout(); render(); }); }
 })();
 </script>
+
+</html>
