@@ -3,7 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="canonical" href="https://gitnoetic.github.io/freego/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="隨手圍棋">
+<meta property="og:title" content="隨手圍棋">
+<meta property="og:description" content="免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，還有可自由擺棋的教學演練模式。">
+<meta property="og:url" content="https://gitnoetic.github.io/freego/">
+<meta property="og:locale" content="zh_TW">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"隨手圍棋","url":"https://gitnoetic.github.io/freego/","description":"免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，還有可自由擺棋的教學演練模式。","applicationCategory":"GameApplication","operatingSystem":"Any","inLanguage":"zh-Hant","offers":{"@type":"Offer","price":"0","priceCurrency":"TWD"}}</script>
 <title>隨手圍棋</title>
+<meta name="description" content="免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，還有可自由擺棋的教學演練模式。">
+<meta name="theme-color" content="#2c5f4a">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
 <style>
@@ -111,6 +122,12 @@ canvas:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .btn:disabled{opacity:.45;cursor:default}
 .btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .btn.armed{border-color:var(--danger);color:var(--danger)}
+.btn.wide{grid-column:1/-1}
+.about{max-width:72ch;display:grid;gap:12px;padding-top:20px;border-top:1px solid var(--line)}
+.about h2{margin:0;font-family:var(--font-display);font-size:1.3rem;text-wrap:balance}
+.about h3{margin:6px 0 0;font-size:1rem}
+.about p,.about li{margin:0;color:var(--muted)}
+.about ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
 .btn:focus-visible,.opts input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .score,.newbox,.setupbox{display:grid;gap:12px;padding-top:4px}
@@ -214,10 +231,11 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
           <div class="srow"><span class="dot sm stone-b"></span><b id="totB"></b><small id="detB"></small></div>
           <div class="srow"><span class="dot sm stone-w"></span><b id="totW"></b><small id="detW"></small></div>
         </div>
-        <p class="hint" id="scoreHint">點選棋盤上的棋子，可標記或取消死棋。雙方確認後按「確認結果」。</p>
+        <p class="hint" id="scoreHint">系統會自動標記死棋（半透明、有 ×），可能判斷錯誤。點棋子可標記或取消，確認無誤後按「確認結果」。</p>
         <div class="btnrow" id="scoreBtns">
           <button class="btn primary" id="btnConfirm" type="button">確認結果</button>
           <button class="btn" id="btnResume" type="button">繼續對局</button>
+          <button class="btn wide" id="btnAuto" type="button">重新自動判斷死棋</button>
         </div>
       </div>
 
@@ -234,12 +252,34 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
           <li>棋子相鄰的空點叫「氣」，整塊棋沒有氣就會被提走。</li>
           <li>落子後自己沒有氣（又沒有提掉對方）是禁著點，不能下。</li>
           <li>打劫：不能立刻提回剛被提的那一子，要先下別處。</li>
-          <li>雙方連續虛手後進入數子，點選棋子標記死棋。</li>
+          <li>雙方連續虛手後進入數子，系統會自動標記死棋。它是模擬判斷，遇到雙活等特殊棋形可能有誤，點棋子就能修改。</li>
           <li>採中國規則數子（棋子加圍住的空點），9 路無貼目，13 與 19 路白棋貼 6.5 子。</li>
         </ul>
       </details>
     </aside>
   </main>
+
+  <section class="about" aria-labelledby="aboutTitle">
+    <h2 id="aboutTitle">隨手圍棋：免註冊的網頁圍棋</h2>
+    <p>隨手圍棋是一個在瀏覽器裡直接使用的圍棋棋盤。不用安裝、不用註冊、不用登入，打開網頁就能下。滑鼠、平板觸控和手寫筆都可以操作，適合兩個人在同一台電腦、平板或手機上輪流對弈，也適合一個人擺棋練習。</p>
+
+    <h3>主要功能</h3>
+    <ul>
+      <li>9 路、13 路、19 路三種棋盤，可在新局時選擇。</li>
+      <li>完整的基本規則：提子、禁入點（不能自殺）、打劫、虛手、悔棋與認輸。</li>
+      <li>觸控操作可先預覽落點，再點同一處落子，避免手指點錯。</li>
+      <li>擺棋教學模式：自由放置黑子或白子、用橡皮擦拿掉棋子，擺好棋形後指定黑先或白先，開始演練。</li>
+      <li>終局數子：採中國規則，系統會自動標記死棋，也可以手動修改後再確認結果。</li>
+      <li>對局會存在你自己的瀏覽器裡，重新整理後可接續，不會上傳到任何伺服器。</li>
+    </ul>
+
+    <h3>常見問題</h3>
+    <p><b>需要註冊或登入嗎？</b>不需要，直接開啟就能使用。</p>
+    <p><b>可以線上和別人對戰嗎？</b>目前不行。這是同一台裝置上輪流落子的版本，也沒有電腦對手。</p>
+    <p><b>貼目是多少？</b>9 路不貼目，13 路與 19 路白棋貼 6.5 子。</p>
+    <p><b>怎麼演練某個棋形？</b>按「擺棋」進入擺棋模式，把想研究的棋子擺好，選擇誰先下，再按「開始演練」，就會回到一黑一白的正常對局。</p>
+    <p><b>自動判斷的死棋一定正確嗎？</b>不一定。系統用模擬估計死棋，遇到雙活等特殊棋形可能有誤，請在確認結果前檢查，並點棋子修正。</p>
+  </section>
 </div>
 
 <script>
@@ -338,7 +378,8 @@ function pass(){
     S.phase='scoring';
     S.dead = []; for(var i=0;i<S.size*S.size;i++) S.dead.push(0);
     afterChange();
-    showMsg('雙方連續虛手，進入數子。點選棋子可標記死棋。');
+    showMsg('雙方連續虛手，正在判斷死棋…');
+    setTimeout(autoMark, 40);
   } else {
     afterChange();
     showMsg(NAME[who]+'虛手');
@@ -409,6 +450,121 @@ function resume(){
   S.phase='play'; S.passes=0; S.dead=null;
   afterChange();
   showMsg('繼續對局，輪到'+NAME[S.turn]);
+}
+
+/* ---------- dead stone estimation (random end-of-game playouts) ---------- */
+function estimateDead(board, n, toMove, runs){
+  var N = n*n, i, j, k;
+  var nb = [], diag = [];
+  for(i=0;i<N;i++){
+    var c=i%n, r=(i/n)|0, a=[], d=[];
+    if(c>0) a.push(i-1);
+    if(c<n-1) a.push(i+1);
+    if(r>0) a.push(i-n);
+    if(r<n-1) a.push(i+n);
+    if(c>0 && r>0) d.push(i-n-1);
+    if(c<n-1 && r>0) d.push(i-n+1);
+    if(c>0 && r<n-1) d.push(i+n-1);
+    if(c<n-1 && r<n-1) d.push(i+n+1);
+    nb.push(a); diag.push(d);
+  }
+  var b = new Int8Array(N), vis = new Int32Array(N), lib = new Int32Array(N);
+  var stack = new Int32Array(N), mem = new Int32Array(N), survive = new Int32Array(N);
+  var id = 0, memN = 0, libN = 0, ko = -1, newKo = -1;
+  var seed = 2463534242;
+  function rnd(){
+    seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+    return (seed >>> 0) / 4294967296;
+  }
+  function flood(p){
+    var col = b[p], sp = 0, q, a, t, v, m;
+    id++; memN = 0; libN = 0;
+    stack[sp++] = p; vis[p] = id;
+    while(sp){
+      q = stack[--sp]; mem[memN++] = q;
+      a = nb[q];
+      for(m=0;m<a.length;m++){
+        t = a[m]; v = b[t];
+        if(v===0){ if(lib[t]!==id){ lib[t]=id; libN++; } }
+        else if(v===col && vis[t]!==id){ vis[t]=id; stack[sp++]=t; }
+      }
+    }
+  }
+  function isEye(p, c){
+    var a = nb[p], d = diag[p], m, bad = 0;
+    for(m=0;m<a.length;m++) if(b[a[m]]!==c) return false;
+    for(m=0;m<d.length;m++) if(b[d[m]]!==c) bad++;
+    return a.length===4 ? bad<=1 : bad===0;
+  }
+  /* Plays p for colour c if it is legal, not a own-eye fill and not a self-atari
+     (unless it captures). Returns true when the stone was placed. */
+  function tryMove(p, c){
+    if(b[p]!==0 || p===ko) return false;
+    if(isEye(p, c)) return false;
+    var opp = 3 - c, a = nb[p], m, t, caps = [], capPos = -1;
+    b[p] = c;
+    for(m=0;m<a.length;m++){
+      t = a[m];
+      if(b[t]===opp){
+        flood(t);
+        if(libN===0){
+          for(var x=0;x<memN;x++){ caps.push(mem[x]); }
+          for(var y=0;y<caps.length;y++) b[caps[y]] = 0;
+        }
+      }
+    }
+    flood(p);
+    var ownLibs = libN, ownSize = memN;
+    if(ownLibs===0 || (ownLibs===1 && caps.length===0)){
+      for(var z=0;z<caps.length;z++) b[caps[z]] = opp;
+      b[p] = 0;
+      return false;
+    }
+    newKo = (caps.length===1 && ownSize===1 && ownLibs===1) ? caps[0] : -1;
+    return true;
+  }
+  var run, col, passes, moves, played, tries, p, start, maxMoves = N*3;
+  for(run=0;run<runs;run++){
+    for(i=0;i<N;i++) b[i] = board[i];
+    col = toMove; passes = 0; moves = 0; ko = -1;
+    while(passes<2 && moves<maxMoves){
+      played = false;
+      for(tries=0;tries<14 && !played;tries++){
+        p = (rnd()*N)|0;
+        if(b[p]===0) played = tryMove(p, col);
+      }
+      if(!played){
+        start = (rnd()*N)|0;
+        for(j=0;j<N && !played;j++){
+          p = (start+j) % N;
+          if(b[p]===0) played = tryMove(p, col);
+        }
+      }
+      if(played){ passes = 0; ko = newKo; } else { passes++; ko = -1; }
+      col = 3 - col; moves++;
+    }
+    for(i=0;i<N;i++) if(board[i] && b[i]===board[i]) survive[i]++;
+  }
+  var dead = [], seen = new Uint8Array(N);
+  for(i=0;i<N;i++){ dead.push(0); b[i] = board[i]; }
+  for(i=0;i<N;i++){
+    if(board[i] && !seen[i]){
+      flood(i);
+      var list = [], sum = 0;
+      for(j=0;j<memN;j++){ list.push(mem[j]); seen[mem[j]] = 1; sum += survive[mem[j]]; }
+      if(sum/(list.length*runs) < 0.25){ for(k=0;k<list.length;k++) dead[list[k]] = 1; }
+    }
+  }
+  return dead;
+}
+
+function autoMark(){
+  if(S.phase!=='scoring') return;
+  var runs = S.size>=19 ? 120 : (S.size>=13 ? 200 : 300);
+  S.dead = estimateDead(S.board, S.size, S.turn, runs);
+  var any = S.dead.some(function(v){ return v===1; });
+  afterChange();
+  showMsg(any ? '已自動標記死棋（半透明並有 ×）。判斷錯了，點棋子就能修改。' : '沒有發現死棋。若有，請點棋子標記。');
 }
 
 /* ---------- setup (teaching) mode ---------- */
@@ -624,7 +780,18 @@ function render(){
   }
   for(i=0;i<n*n;i++){
     v = S.board[i];
-    if(v) drawStone(px(i), py(i), v, (S.dead && S.dead[i]) ? 0.38 : 1);
+    if(v){
+      var isDead = !!(S.dead && S.dead[i]);
+      drawStone(px(i), py(i), v, isDead ? 0.4 : 1);
+      if(isDead){
+        var xs = cell*0.2;
+        ctx.strokeStyle='rgba(200,40,25,0.95)'; ctx.lineWidth=Math.max(1.6,cell*0.075); ctx.lineCap='round';
+        ctx.beginPath();
+        ctx.moveTo(px(i)-xs, py(i)-xs); ctx.lineTo(px(i)+xs, py(i)+xs);
+        ctx.moveTo(px(i)+xs, py(i)-xs); ctx.lineTo(px(i)-xs, py(i)+xs);
+        ctx.stroke(); ctx.lineCap='butt';
+      }
+    }
   }
   if(S.phase==='play' && S.last>=0 && S.board[S.last]){
     ctx.fillStyle='#e5483a';
@@ -840,6 +1007,7 @@ $('setupBox').addEventListener('change', function(e){
   if(t.name==='tool'){ ui.tool = t.value; render(); }
   else if(t.name==='first'){ S.turn = parseInt(t.value,10); save(); }
 });
+$('btnAuto').addEventListener('click', function(){ showMsg('判斷中…'); setTimeout(autoMark, 30); });
 $('btnConfirm').addEventListener('click', confirmResult);
 $('btnResume').addEventListener('click', resume);
 $('optTouch').addEventListener('change', function(e){ ui.touchConfirm=e.target.checked; ui.preview=null; saveOpts(); render(); });
