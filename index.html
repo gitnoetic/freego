@@ -7,13 +7,13 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="隨手圍棋">
 <meta property="og:title" content="隨手圍棋">
-<meta property="og:description" content="免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，可對電腦或雙人同機對弈，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，還有可自由擺棋的教學演練模式。">
+<meta property="og:description" content="免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，可對電腦或雙人同機對弈，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，提子時還有爆炸特效，以及可自由擺棋的教學演練模式。">
 <meta property="og:url" content="https://gitnoetic.github.io/freego/">
 <meta property="og:locale" content="zh_TW">
 <meta name="twitter:card" content="summary">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"隨手圍棋","url":"https://gitnoetic.github.io/freego/","description":"免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，可對電腦或雙人同機對弈，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，還有可自由擺棋的教學演練模式。","applicationCategory":"GameApplication","operatingSystem":"Any","inLanguage":"zh-Hant","offers":{"@type":"Offer","price":"0","priceCurrency":"TWD"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"隨手圍棋","url":"https://gitnoetic.github.io/freego/","description":"免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，可對電腦或雙人同機對弈，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，提子時還有爆炸特效，以及可自由擺棋的教學演練模式。","applicationCategory":"GameApplication","operatingSystem":"Any","inLanguage":"zh-Hant","offers":{"@type":"Offer","price":"0","priceCurrency":"TWD"}}</script>
 <title>隨手圍棋</title>
-<meta name="description" content="免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，可對電腦或雙人同機對弈，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，還有可自由擺棋的教學演練模式。">
+<meta name="description" content="免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，可對電腦或雙人同機對弈，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，提子時還有爆炸特效，以及可自由擺棋的教學演練模式。">
 <meta name="theme-color" content="#2c5f4a">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
@@ -130,6 +130,12 @@ canvas:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .dock .seg span{min-height:50px;display:flex;align-items:center;justify-content:center;gap:6px}
 .sect{display:grid;gap:6px}
 .lab{margin:0;font-size:.85rem;color:var(--muted)}
+.chip{
+  margin-left:auto;font:inherit;font-size:.85rem;min-height:36px;padding:4px 14px;border-radius:999px;
+  border:1px solid var(--line);background:var(--raised);color:var(--muted);cursor:pointer;
+}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:500}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .sect h2{font-size:1.05rem}
 .btn{
   font:inherit;font-weight:500;min-height:44px;padding:10px 14px;
@@ -203,6 +209,7 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
           <span class="dot sm" id="turnDot" hidden></span>
           <span id="turn"></span>
           <span id="msg" aria-live="polite"></span>
+          <button class="chip" id="btnFx" type="button" aria-pressed="true" title="提子爆炸特效 開／關">特效：開</button>
         </div>
 
         <div class="dockrow cols4" id="dockPlay">
@@ -295,7 +302,8 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
 
         <div class="opts">
           <label><input type="checkbox" id="optTouch"> 觸控時先預覽，再點同一處落子</label>
-          <label><input type="checkbox" id="optSound"> 落子音效</label>
+          <label><input type="checkbox" id="optFx"> 提子爆炸特效</label>
+          <label><input type="checkbox" id="optSound"> 音效（落子、爆炸）</label>
         </div>
 
         <details>
@@ -323,6 +331,7 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
       <li>9 路、13 路、19 路三種棋盤，可在新局時選擇。</li>
       <li>完整的基本規則：提子、禁入點（不能自殺）、打劫、虛手、悔棋與認輸。</li>
       <li>可以對電腦下棋，有初、中、高三種強度，也可以兩個人同機輪流下。</li>
+      <li>提子時棋子會先抖動再爆炸，有音效；不喜歡可以用「特效：開」按鈕一鍵關掉，恢復簡潔畫面。</li>
       <li>觸控操作可先預覽落點，再點同一處落子，避免手指點錯。</li>
       <li>擺棋教學模式：自由放置黑子或白子、用橡皮擦拿掉棋子，擺好棋形後指定黑先或白先，開始演練。</li>
       <li>終局數子：採中國規則，系統會自動標記死棋，也可以手動修改後再確認結果。</li>
@@ -351,7 +360,7 @@ var OPT_KEY = 'suishou-weiqi-opts-v1';
 var LETTERS = 'ABCDEFGHJKLMNOPQRST';
 
 var S = null;
-var ui = {hover:null, preview:null, touchConfirm:true, sound:true, newOpen:false, tool:'b', bad:null};
+var ui = {hover:null, preview:null, touchConfirm:true, sound:true, newOpen:false, tool:'b', bad:null, fx:true};
 var NB = [];
 var geom = {};
 var bg = null;
@@ -370,6 +379,7 @@ function buildNb(n){
 }
 function newGame(size, phase, bot, level){
   botCancel();
+  fxClear();
   buildNb(size);
   var b = []; for(var i=0;i<size*size;i++) b.push(0);
   S = {size:size, bot:bot||0, level:level||2, board:b, turn:1, caps:{1:0,2:0}, last:-1, ko:-1, passes:0, moveNo:0,
@@ -420,11 +430,13 @@ function play(idx){
   S.history.push(snap());
   S.board = r.board;
   S.caps[S.turn] += r.captured.length;
+  fxDropAt(idx);
+  fxAdd(r.captured, 3 - S.turn, idx);
   S.last = idx; S.ko = r.ko; S.passes = 0; S.moveNo++;
   S.turn = 3 - S.turn;
   ui.preview = null;
-  sfx(r.captured.length>0);
-  showMsg(r.captured.length ? ('提了 '+r.captured.length+' 子') : '');
+  sfx(r.captured.length>0 && !ui.fx);
+  showMsg(r.captured.length ? ((ui.fx ? (r.captured.length>=5 ? '轟隆！' : '砰！') : '')+'提了 '+r.captured.length+' 子') : '');
   afterChange();
 }
 function pass(){
@@ -447,6 +459,7 @@ function undo(){
   if(S.phase==='setup'){ setupUndo(); return; }
   if(!S.history.length) return;
   botCancel();
+  fxClear();
   var h = S.history.pop();
   S.board=h.board; S.turn=h.turn; S.caps=h.caps; S.last=h.last; S.ko=h.ko; S.passes=h.passes; S.moveNo=h.moveNo;
   if(S.bot && S.turn===S.bot && S.history.length){
@@ -923,6 +936,8 @@ function kick(){
 }
 function botDone(d){
   if(d.id!==bot.id || !bot.thinking) return;
+  var wait = fxRemaining();
+  if(wait>0){ setTimeout(function(){ botDone(d); }, wait+20); return; }
   bot.thinking = false;
   if(!isBotTurn()) return;
   showMsg('');
@@ -934,6 +949,7 @@ function hasWork(){ return S.phase!=='over' && (S.moveNo>0 || S.board.some(funct
 function setupPush(){ S.setupHist.push(S.board.slice()); if(S.setupHist.length>300) S.setupHist.shift(); }
 function enterSetup(){
   botCancel();
+  fxClear();
   S.phase='setup'; S.history=[]; S.setupHist=[]; S.caps={1:0,2:0};
   S.last=-1; S.ko=-1; S.passes=0; S.moveNo=0; S.dead=null; S.result=''; S.resigned=false;
   ui.preview=null; ui.bad=null;
@@ -1000,22 +1016,81 @@ function load(){
     return true;
   }catch(e){ return false; }
 }
-function saveOpts(){ try{ localStorage.setItem(OPT_KEY, JSON.stringify({touch:ui.touchConfirm, sound:ui.sound})); }catch(e){} }
+function reducedMotion(){
+  try{ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; }
+}
+function saveOpts(){ try{ localStorage.setItem(OPT_KEY, JSON.stringify({touch:ui.touchConfirm, sound:ui.sound, fx:ui.fx})); }catch(e){} }
 function loadOpts(){
   try{
     var o = JSON.parse(localStorage.getItem(OPT_KEY)||'null');
     if(o){ ui.touchConfirm = o.touch!==false; ui.sound = o.sound!==false; }
+    ui.fx = (o && typeof o.fx==='boolean') ? o.fx : !reducedMotion();
   }catch(e){}
 }
 
 /* ---------- sound ---------- */
 var actx = null;
-function sfx(captured){
-  if(!ui.sound) return;
+function audioCtx(){
   try{
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     if(actx.state==='suspended') actx.resume();
-    var t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
+    return actx;
+  }catch(e){ return null; }
+}
+var noiseBuf = null;
+function getNoise(ac){
+  if(!noiseBuf){
+    var len = Math.floor(ac.sampleRate*0.9), d;
+    noiseBuf = ac.createBuffer(1, len, ac.sampleRate);
+    d = noiseBuf.getChannelData(0);
+    for(var i=0;i<len;i++) d[i] = Math.random()*2-1;
+  }
+  return noiseBuf;
+}
+/* low thump plus a burst of filtered noise */
+function boomSound(delay, vol){
+  var ac = audioCtx(); if(!ac) return;
+  try{
+    var t = ac.currentTime + delay;
+    var src = ac.createBufferSource(); src.buffer = getNoise(ac);
+    var lp = ac.createBiquadFilter(); lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(2600, t); lp.frequency.exponentialRampToValueAtTime(110, t+0.55);
+    var ng = ac.createGain();
+    ng.gain.setValueAtTime(0.0001, t);
+    ng.gain.exponentialRampToValueAtTime(0.38*vol, t+0.012);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t+0.65);
+    src.connect(lp); lp.connect(ng); ng.connect(ac.destination);
+    src.start(t); src.stop(t+0.7);
+    var o = ac.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(38, t+0.28);
+    var og = ac.createGain();
+    og.gain.setValueAtTime(0.0001, t);
+    og.gain.exponentialRampToValueAtTime(0.5*vol, t+0.012);
+    og.gain.exponentialRampToValueAtTime(0.0001, t+0.4);
+    o.connect(og); og.connect(ac.destination);
+    o.start(t); o.stop(t+0.45);
+  }catch(e){}
+}
+/* crackling fuse */
+function sizzleSound(delay, dur){
+  var ac = audioCtx(); if(!ac) return;
+  try{
+    var t = ac.currentTime + delay;
+    var src = ac.createBufferSource(); src.buffer = getNoise(ac);
+    var hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2800;
+    var g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    for(var k=0.0;k<dur;k+=0.03) g.gain.setValueAtTime(0.01 + Math.random()*0.09, t+k);
+    g.gain.setValueAtTime(0.0001, t+dur);
+    src.connect(hp); hp.connect(g); g.connect(ac.destination);
+    src.start(t); src.stop(t+dur+0.02);
+  }catch(e){}
+}
+function sfx(captured){
+  if(!ui.sound) return;
+  try{
+    var ac = audioCtx(); if(!ac) return;
+    var t = ac.currentTime, o = actx.createOscillator(), g = actx.createGain();
     o.type='triangle';
     o.frequency.setValueAtTime(captured?320:230, t);
     o.frequency.exponentialRampToValueAtTime(90, t+0.07);
@@ -1104,31 +1179,159 @@ function layout(){
   var pad = Math.max(css*0.055, 18);
   geom = {css:css, dpr:dpr, pad:pad, cell:(css-2*pad)/(S.size-1)};
   buildBg();
+  buildSprites();
+}
+/* Stones are painted once into small canvases, then stamped, so animation stays smooth on older tablets. */
+var sprites = null;
+function buildSprites(){
+  var r = geom.cell*0.47, dpr = geom.dpr, box = Math.ceil(r*2.5) + 2;
+  sprites = {box:box};
+  [1,2].forEach(function(color){
+    var c = document.createElement('canvas');
+    c.width = Math.ceil(box*dpr); c.height = Math.ceil(box*dpr);
+    var x = c.getContext('2d'), cx = box/2, cy = box/2, g;
+    x.scale(dpr,dpr);
+    x.fillStyle='rgba(40,25,5,0.3)';
+    x.beginPath(); x.arc(cx+r*0.08, cy+r*0.13, r, 0, Math.PI*2); x.fill();
+    g = x.createRadialGradient(cx-r*0.35,cy-r*0.4,r*0.1,cx,cy,r);
+    if(color===1){ g.addColorStop(0,'#6e6e6e'); g.addColorStop(0.5,'#1c1c1c'); g.addColorStop(1,'#000'); }
+    else { g.addColorStop(0,'#ffffff'); g.addColorStop(0.7,'#ececec'); g.addColorStop(1,'#bdbdbd'); }
+    x.fillStyle = g;
+    x.beginPath(); x.arc(cx,cy,r,0,Math.PI*2); x.fill();
+    if(color===2){ x.strokeStyle='rgba(0,0,0,0.35)'; x.lineWidth=0.7; x.stroke(); }
+    sprites[color] = c;
+  });
 }
 function drawStone(x,y,color,alpha){
-  var r = geom.cell*0.47;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle='rgba(40,25,5,0.3)';
-  ctx.beginPath(); ctx.arc(x+r*0.08, y+r*0.13, r, 0, Math.PI*2); ctx.fill();
-  var g;
-  if(color===1){
-    g = ctx.createRadialGradient(x-r*0.35,y-r*0.4,r*0.1,x,y,r);
-    g.addColorStop(0,'#6e6e6e'); g.addColorStop(0.5,'#1c1c1c'); g.addColorStop(1,'#000');
-  } else {
-    g = ctx.createRadialGradient(x-r*0.35,y-r*0.4,r*0.1,x,y,r);
-    g.addColorStop(0,'#ffffff'); g.addColorStop(0.7,'#ececec'); g.addColorStop(1,'#bdbdbd');
+  if(!sprites) return;
+  var b = sprites.box;
+  if(alpha<1) ctx.globalAlpha = alpha;
+  ctx.drawImage(sprites[color], x-b/2, y-b/2, b, b);
+  if(alpha<1) ctx.globalAlpha = 1;
+}
+
+/* ---------- capture effects: shake, then bomb blast ---------- */
+var fx = {list:[], until:0, raf:0};
+var FX_SHAKE = 380, FX_BOOM = 750;
+function fxRemaining(){ return Math.max(0, fx.until - performance.now()); }
+function fxClear(){
+  fx.list = []; fx.until = 0;
+  if(fx.raf){ cancelAnimationFrame(fx.raf); fx.raf = 0; }
+}
+function fxDropAt(idx){ fx.list = fx.list.filter(function(e){ return e.idx!==idx; }); }
+function fxAdd(indices, color, from){
+  if(!ui.fx || !indices.length || !geom.css) return;
+  var now = performance.now(), count = indices.length, n = S.size;
+  var step = Math.max(30, Math.min(110, 650/count));
+  var per = Math.max(5, Math.min(16, Math.floor(240/count)));
+  var fc = from%n, fr = (from/n)|0;
+  var sorted = indices.slice().sort(function(a,b){
+    var da = Math.pow(a%n-fc,2)+Math.pow(((a/n)|0)-fr,2), db = Math.pow(b%n-fc,2)+Math.pow(((b/n)|0)-fr,2);
+    return da-db;
+  });
+  sorted.forEach(function(idx,k){
+    fx.list.push({idx:idx, color:color, start:now+k*step, seed:((idx+1)*7919+k*104729)%2147483647 || 1, per:per, big:count});
+  });
+  fx.until = Math.max(fx.until, now + (count-1)*step + FX_SHAKE + FX_BOOM);
+  if(ui.sound){
+    var m = Math.min(count,6), v = 0.95/Math.sqrt(m), k;
+    sizzleSound(0, Math.min(0.5, FX_SHAKE/1000));
+    for(k=0;k<m;k++) boomSound((k*step + FX_SHAKE)/1000, v);
+    if(count>6) boomSound(((count-1)*step + FX_SHAKE)/1000, 1.0);
   }
-  ctx.fillStyle=g;
-  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-  if(color===2){ ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=0.7; ctx.stroke(); }
-  ctx.restore();
+  if(!fx.raf) fx.raf = requestAnimationFrame(fxTick);
+}
+function fxTick(){
+  fx.raf = 0;
+  render();
+  if(fx.list.length) fx.raf = requestAnimationFrame(fxTick);
+}
+function fxRng(seed){
+  var s = seed;
+  return function(){ s = (s*16807) % 2147483647; return s/2147483647; };
+}
+function fxShakeOffset(now){
+  var cell = geom.cell, amt = 0, i, e, t2;
+  for(i=0;i<fx.list.length;i++){
+    e = fx.list[i]; t2 = now - e.start - FX_SHAKE;
+    if(t2>=0 && t2<170) amt += (1 - t2/170) * Math.min(1, 0.55 + e.big*0.08);
+  }
+  amt = Math.min(amt, 1.6) * cell * 0.07;
+  if(!amt) return [0,0];
+  var a = Math.floor(now/16)*2.399;
+  return [Math.cos(a)*amt, Math.sin(a*1.3)*amt];
+}
+function fxDraw(now){
+  var cell = geom.cell, n = S.size, pad = geom.pad, r = cell*0.47, keep = [], i, k, e, t, x, y;
+  for(i=0;i<fx.list.length;i++){
+    e = fx.list[i]; t = now - e.start;
+    if(t > FX_SHAKE + FX_BOOM) continue;
+    keep.push(e);
+    x = pad + (e.idx%n)*cell; y = pad + ((e.idx/n)|0)*cell;
+    if(t<0){ drawStone(x,y,e.color,1); continue; }
+    if(t<FX_SHAKE){
+      var u = t/FX_SHAKE, amp = cell*(0.02+0.10*u), fq = 0.05+0.04*u;
+      var ox = Math.sin(t*fq*1.7 + e.idx)*amp, oy = Math.cos(t*fq*2.3 + e.idx*0.7)*amp*0.6;
+      var sc = 1 + 0.10*u + 0.03*Math.sin(t*0.06);
+      ctx.save(); ctx.translate(x+ox, y+oy); ctx.scale(sc,sc);
+      drawStone(0,0,e.color,1);
+      ctx.fillStyle = 'rgba(255,90,30,'+(0.5*u*(0.6+0.4*Math.sin(t*0.05))).toFixed(3)+')';
+      ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
+      var tx = r*0.95, ty = -r*1.35*(1-0.4*u);
+      ctx.strokeStyle = '#5b3b1a'; ctx.lineWidth = Math.max(1.5, cell*0.06); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(r*0.45,-r*0.8); ctx.quadraticCurveTo(r*0.85,-r*1.05, tx, ty); ctx.stroke();
+      ctx.lineCap = 'butt';
+      var sr = cell*(0.17+0.07*Math.sin(t*0.09)), sg = ctx.createRadialGradient(tx,ty,0,tx,ty,sr);
+      sg.addColorStop(0,'rgba(255,255,200,1)'); sg.addColorStop(0.4,'rgba(255,190,50,0.9)'); sg.addColorStop(1,'rgba(255,110,20,0)');
+      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(tx,ty,sr,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+      continue;
+    }
+    var t2 = t - FX_SHAKE, bu = t2/FX_BOOM, eo = 1-(1-bu)*(1-bu);
+    if(t2<230){
+      var fa = 1 - t2/230, fr2 = cell*(0.5+1.5*(t2/230));
+      var fg = ctx.createRadialGradient(x,y,0,x,y,fr2);
+      fg.addColorStop(0,'rgba(255,255,235,'+fa.toFixed(3)+')');
+      fg.addColorStop(0.5,'rgba(255,190,60,'+(fa*0.7).toFixed(3)+')');
+      fg.addColorStop(1,'rgba(255,120,20,0)');
+      ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(x,y,fr2,0,Math.PI*2); ctx.fill();
+    }
+    if(e.big<=8 || (e.idx&1)===0){
+      var rg = fxRng(e.seed+7), q;
+      for(q=0;q<3;q++){
+        var pa = rg()*6.283, pd = cell*0.25*rg();
+        ctx.fillStyle = 'rgba(95,95,95,'+(0.3*(1-bu)).toFixed(3)+')';
+        ctx.beginPath(); ctx.arc(x+Math.cos(pa)*pd, y+Math.sin(pa)*pd, cell*(0.3+0.75*eo), 0, Math.PI*2); ctx.fill();
+      }
+    }
+    ctx.strokeStyle = 'rgba(255,205,100,'+(0.85*(1-bu)).toFixed(3)+')';
+    ctx.lineWidth = Math.max(1, cell*0.16*(1-bu));
+    ctx.beginPath(); ctx.arc(x,y,cell*(0.45+1.7*eo),0,Math.PI*2); ctx.stroke();
+    var rng = fxRng(e.seed), shard = e.color===1 ? '#161616' : '#f6f6f6';
+    for(k=0;k<e.per;k++){
+      var ang = rng()*6.283, spd = cell*(0.9+rng()*2.2), rot = rng()*3.14 + (rng()-0.5)*14*bu, sz = cell*(0.07+rng()*0.09);
+      var sx = x + Math.cos(ang)*spd*eo, sy = y + Math.sin(ang)*spd*eo, al = 1 - Math.pow(bu,1.5);
+      ctx.save(); ctx.translate(sx,sy); ctx.rotate(rot); ctx.globalAlpha = al;
+      ctx.fillStyle = shard; ctx.fillRect(-sz,-sz*0.7,sz*2,sz*1.4);
+      ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 0.8; ctx.strokeRect(-sz,-sz*0.7,sz*2,sz*1.4);
+      ctx.restore();
+    }
+    for(k=0;k<e.per;k++){
+      var a2 = rng()*6.283, sp2 = cell*(1.3+rng()*2.3), hue = 22 + rng()*34;
+      var qx = x + Math.cos(a2)*sp2*eo, qy = y + Math.sin(a2)*sp2*eo, rr = cell*0.055*(1-bu)+0.6;
+      ctx.fillStyle = 'hsla('+hue.toFixed(0)+',100%,'+(55+20*(1-bu)).toFixed(0)+'%,'+(1-bu).toFixed(3)+')';
+      ctx.beginPath(); ctx.arc(qx,qy,rr,0,Math.PI*2); ctx.fill();
+    }
+  }
+  fx.list = keep;
 }
 function render(){
   if(!geom.css || !bg) return;
   var css=geom.css, dpr=geom.dpr, pad=geom.pad, cell=geom.cell, n=S.size;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,css,css);
+  var nowT = performance.now(), shk = fx.list.length ? fxShakeOffset(nowT) : [0,0];
+  if(shk[0] || shk[1]) ctx.translate(shk[0], shk[1]);
   ctx.drawImage(bg,0,0,css,css);
   var px=function(i){ return pad+(i%n)*cell; };
   var py=function(i){ return pad+((i/n)|0)*cell; };
@@ -1191,6 +1394,7 @@ function render(){
       }
     }
   }
+  if(fx.list.length) fxDraw(nowT);
 }
 
 /* ---------- UI sync ---------- */
@@ -1289,6 +1493,7 @@ canvas.addEventListener('pointerdown', function(e){
   if(e.button>0) return;
   pressed = true;
   try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
+  if(fx.list.length) fxClear();
   ui.hover = hit(e); render();
   e.preventDefault();
 });
@@ -1417,11 +1622,25 @@ $('btnConfirm').addEventListener('click', confirmResult);
 $('btnResume').addEventListener('click', resume);
 $('optTouch').addEventListener('change', function(e){ ui.touchConfirm=e.target.checked; ui.preview=null; saveOpts(); render(); });
 $('optSound').addEventListener('change', function(e){ ui.sound=e.target.checked; saveOpts(); });
+function syncFxUI(){
+  $('optFx').checked = ui.fx;
+  var b = $('btnFx');
+  b.textContent = ui.fx ? '特效：開' : '特效：關';
+  b.setAttribute('aria-pressed', ui.fx ? 'true' : 'false');
+}
+function setFx(on){
+  ui.fx = !!on;
+  if(!ui.fx) fxClear();
+  saveOpts(); syncFxUI(); render();
+}
+$('optFx').addEventListener('change', function(e){ setFx(e.target.checked); });
+$('btnFx').addEventListener('click', function(){ setFx(!ui.fx); });
 
 /* ---------- start ---------- */
 loadOpts();
 $('optTouch').checked = ui.touchConfirm;
 $('optSound').checked = ui.sound;
+syncFxUI();
 var restored = load();
 if(!restored) newGame(Math.min(window.innerWidth, window.innerHeight) < 560 ? 13 : 19);
 layout();
