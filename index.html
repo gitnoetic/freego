@@ -7,13 +7,13 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="隨手圍棋">
 <meta property="og:title" content="隨手圍棋">
-<meta property="og:description" content="免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，還有可自由擺棋的教學演練模式。">
+<meta property="og:description" content="免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，可對電腦或雙人同機對弈，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，還有可自由擺棋的教學演練模式。">
 <meta property="og:url" content="https://gitnoetic.github.io/freego/">
 <meta property="og:locale" content="zh_TW">
 <meta name="twitter:card" content="summary">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"隨手圍棋","url":"https://gitnoetic.github.io/freego/","description":"免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，還有可自由擺棋的教學演練模式。","applicationCategory":"GameApplication","operatingSystem":"Any","inLanguage":"zh-Hant","offers":{"@type":"Offer","price":"0","priceCurrency":"TWD"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"隨手圍棋","url":"https://gitnoetic.github.io/freego/","description":"免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，可對電腦或雙人同機對弈，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，還有可自由擺棋的教學演練模式。","applicationCategory":"GameApplication","operatingSystem":"Any","inLanguage":"zh-Hant","offers":{"@type":"Offer","price":"0","priceCurrency":"TWD"}}</script>
 <title>隨手圍棋</title>
-<meta name="description" content="免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，還有可自由擺棋的教學演練模式。">
+<meta name="description" content="免註冊、免登入的網頁圍棋。打開就能用滑鼠、觸控或手寫筆下棋，可對電腦或雙人同機對弈，支援 9、13、19 路，有提子、打劫、虛手、自動判斷死棋與數子，還有可自由擺棋的教學演練模式。">
 <meta name="theme-color" content="#2c5f4a">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
@@ -129,6 +129,7 @@ canvas:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .startbtn{flex:2 1 150px}
 .dock .seg span{min-height:50px;display:flex;align-items:center;justify-content:center;gap:6px}
 .sect{display:grid;gap:6px}
+.lab{margin:0;font-size:.85rem;color:var(--muted)}
 .sect h2{font-size:1.05rem}
 .btn{
   font:inherit;font-weight:500;min-height:44px;padding:10px 14px;
@@ -186,7 +187,7 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
 <div class="app">
   <header class="top">
     <h1><span class="pair" aria-hidden="true"><i class="stone-b"></i><i class="stone-w"></i></span>隨手圍棋</h1>
-    <p>不用註冊、不用登入，打開就能下。兩人在同一台裝置上輪流落子，滑鼠、觸控、手寫筆都可以。</p>
+    <p>不用註冊、不用登入，打開就能下。可以對電腦下，也能兩人同機輪流落子，滑鼠、觸控、手寫筆都可以。</p>
   </header>
 
   <main class="stage">
@@ -245,8 +246,8 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
 
       <section class="panel" id="info">
         <div class="players">
-          <div class="player" id="pB"><span class="dot stone-b"></span><div><b>黑棋</b><span class="cap" id="capB">提 0 子</span></div></div>
-          <div class="player" id="pW"><span class="dot stone-w"></span><div><b>白棋</b><span class="cap" id="capW">提 0 子</span></div></div>
+          <div class="player" id="pB"><span class="dot stone-b"></span><div><b id="nameB">黑棋</b><span class="cap" id="capB">提 0 子</span></div></div>
+          <div class="player" id="pW"><span class="dot stone-w"></span><div><b id="nameW">白棋</b><span class="cap" id="capW">提 0 子</span></div></div>
         </div>
 
         <div class="sect" id="setupHint" hidden>
@@ -264,11 +265,27 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
         </div>
 
         <div class="newbox" id="newBox">
-          <h2>新局・棋盤大小</h2>
+          <h2>新局</h2>
+          <p class="lab">棋盤大小</p>
           <div class="seg" role="radiogroup" aria-label="棋盤大小">
             <label><input type="radio" name="size" value="9"><span>9 路</span></label>
             <label><input type="radio" name="size" value="13"><span>13 路</span></label>
             <label><input type="radio" name="size" value="19"><span>19 路</span></label>
+          </div>
+          <p class="lab">對手</p>
+          <div class="seg" role="radiogroup" aria-label="對手">
+            <label><input type="radio" name="opp" value="0"><span>雙人同機</span></label>
+            <label><input type="radio" name="opp" value="2"><span>電腦執白</span></label>
+            <label><input type="radio" name="opp" value="1"><span>電腦執黑</span></label>
+          </div>
+          <div class="sect" id="levelRow" hidden>
+            <p class="lab">電腦強度</p>
+            <div class="seg" role="radiogroup" aria-label="電腦強度">
+              <label><input type="radio" name="level" value="1"><span>初級</span></label>
+              <label><input type="radio" name="level" value="2"><span>中級</span></label>
+              <label><input type="radio" name="level" value="3"><span>高級</span></label>
+            </div>
+            <p class="hint">思考時間約 0.4、2、5 秒，實際強度依裝置速度而定。電腦適合 9 路與 13 路，19 路會明顯較弱。</p>
           </div>
           <div class="btnrow">
             <button class="btn primary" id="btnStart" type="button">開始新局</button>
@@ -305,6 +322,7 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
     <ul>
       <li>9 路、13 路、19 路三種棋盤，可在新局時選擇。</li>
       <li>完整的基本規則：提子、禁入點（不能自殺）、打劫、虛手、悔棋與認輸。</li>
+      <li>可以對電腦下棋，有初、中、高三種強度，也可以兩個人同機輪流下。</li>
       <li>觸控操作可先預覽落點，再點同一處落子，避免手指點錯。</li>
       <li>擺棋教學模式：自由放置黑子或白子、用橡皮擦拿掉棋子，擺好棋形後指定黑先或白先，開始演練。</li>
       <li>終局數子：採中國規則，系統會自動標記死棋，也可以手動修改後再確認結果。</li>
@@ -313,7 +331,8 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
 
     <h3>常見問題</h3>
     <p><b>需要註冊或登入嗎？</b>不需要，直接開啟就能使用。</p>
-    <p><b>可以線上和別人對戰嗎？</b>目前不行。這是同一台裝置上輪流落子的版本，也沒有電腦對手。</p>
+    <p><b>可以線上和別人對戰嗎？</b>目前不行。兩個人要在同一台裝置上輪流落子。</p>
+    <p><b>有電腦對手嗎？</b>有。開新局時選「電腦執白」或「電腦執黑」，再選初級、中級或高級。電腦用蒙地卡羅搜尋，在你的瀏覽器裡運算，棋力有限，適合 9 路與 13 路練習。</p>
     <p><b>貼目是多少？</b>9 路不貼目，13 路與 19 路白棋貼 6.5 子。</p>
     <p><b>怎麼演練某個棋形？</b>按「擺棋」進入擺棋模式，把想研究的棋子擺好，選擇誰先下，再按「開始演練」，就會回到一黑一白的正常對局。</p>
     <p><b>自動判斷的死棋一定正確嗎？</b>不一定。系統用模擬估計死棋，遇到雙活等特殊棋形可能有誤，請在確認結果前檢查，並點棋子修正。</p>
@@ -349,10 +368,11 @@ function buildNb(n){
     NB.push(a);
   }
 }
-function newGame(size, phase){
+function newGame(size, phase, bot, level){
+  botCancel();
   buildNb(size);
   var b = []; for(var i=0;i<size*size;i++) b.push(0);
-  S = {size:size, board:b, turn:1, caps:{1:0,2:0}, last:-1, ko:-1, passes:0, moveNo:0,
+  S = {size:size, bot:bot||0, level:level||2, board:b, turn:1, caps:{1:0,2:0}, last:-1, ko:-1, passes:0, moveNo:0,
        phase:phase||'play', setupHist:[], dead:null, result:'', resigned:false, history:[]};
   ui.hover = null; ui.preview = null; ui.bad = null;
 }
@@ -404,8 +424,8 @@ function play(idx){
   S.turn = 3 - S.turn;
   ui.preview = null;
   sfx(r.captured.length>0);
-  afterChange();
   showMsg(r.captured.length ? ('提了 '+r.captured.length+' 子') : '');
+  afterChange();
 }
 function pass(){
   if(S.phase!=='play') return;
@@ -419,18 +439,23 @@ function pass(){
     showMsg('雙方連續虛手，正在判斷死棋…');
     setTimeout(autoMark, 40);
   } else {
-    afterChange();
     showMsg(NAME[who]+'虛手');
+    afterChange();
   }
 }
 function undo(){
   if(S.phase==='setup'){ setupUndo(); return; }
   if(!S.history.length) return;
+  botCancel();
   var h = S.history.pop();
   S.board=h.board; S.turn=h.turn; S.caps=h.caps; S.last=h.last; S.ko=h.ko; S.passes=h.passes; S.moveNo=h.moveNo;
+  if(S.bot && S.turn===S.bot && S.history.length){
+    h = S.history.pop();
+    S.board=h.board; S.turn=h.turn; S.caps=h.caps; S.last=h.last; S.ko=h.ko; S.passes=h.passes; S.moveNo=h.moveNo;
+  }
   S.phase='play'; S.dead=null; S.result=''; S.resigned=false; ui.preview=null;
-  afterChange();
   showMsg('已悔棋');
+  afterChange();
 }
 function resign(){
   if(S.phase!=='play') return;
@@ -486,8 +511,8 @@ function confirmResult(){
 function resume(){
   if(S.phase!=='scoring') return;
   S.phase='play'; S.passes=0; S.dead=null;
-  afterChange();
   showMsg('繼續對局，輪到'+NAME[S.turn]);
+  afterChange();
 }
 
 /* ---------- dead stone estimation (random end-of-game playouts) ---------- */
@@ -605,10 +630,310 @@ function autoMark(){
   showMsg(any ? '已自動標記死棋（半透明並有 ×）。判斷錯了，點棋子就能修改。' : '沒有發現死棋。若有，請點棋子標記。');
 }
 
+/* ---------- computer opponent: Monte Carlo tree search ---------- */
+/* Self-contained so it can run inside a Web Worker (via toString) or on the main thread. */
+function botEngine(){
+  var LEVELS = {1:{ms:350, max:500}, 2:{ms:1800, max:12000}, 3:{ms:5000, max:60000}};
+
+  function genMove(board, n, color, ko0, level, komi, oppPassed, lastMove, scale){
+    var N = n*n, i, j, m;
+    var cfg = LEVELS[level] || LEVELS[2];
+    scale = scale || 1;
+    var deadline = Date.now() + cfg.ms*scale;
+    var maxPlayouts = Math.max(30, Math.round(cfg.max*scale));
+    if(n>=19) maxPlayouts = Math.min(maxPlayouts, 15000);
+
+    var nb = [], diag = [];
+    for(i=0;i<N;i++){
+      var cc=i%n, rr=(i/n)|0, a=[], d=[];
+      if(cc>0) a.push(i-1);
+      if(cc<n-1) a.push(i+1);
+      if(rr>0) a.push(i-n);
+      if(rr<n-1) a.push(i+n);
+      if(cc>0 && rr>0) d.push(i-n-1);
+      if(cc<n-1 && rr>0) d.push(i-n+1);
+      if(cc>0 && rr<n-1) d.push(i+n-1);
+      if(cc<n-1 && rr<n-1) d.push(i+n+1);
+      nb.push(a); diag.push(d);
+    }
+
+    var seed = ((Math.random()*4294967295)>>>0) || 88172645;
+    function rnd(){
+      seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+      return (seed >>> 0) / 4294967296;
+    }
+
+    var empty = true;
+    for(i=0;i<N;i++) if(board[i]){ empty=false; break; }
+    if(empty){
+      var stars = n===9 ? [[2,2],[6,2],[2,6],[6,6],[4,4]]
+                : (n===13 ? [[3,3],[9,3],[3,9],[9,9],[6,6]] : [[3,3],[15,3],[3,15],[15,15],[9,9]]);
+      var s = stars[(rnd()*stars.length)|0];
+      return {move:s[1]*n+s[0], wr:0.5, iters:0};
+    }
+
+    var b = new Int8Array(N), rootB = new Int8Array(N);
+    for(i=0;i<N;i++) rootB[i] = board[i];
+    var vis = new Int32Array(N), lib = new Int32Array(N);
+    var stack = new Int32Array(N), mem = new Int32Array(N), capBuf = new Int32Array(N);
+    var id = 0, memN = 0, libN = 0, capN = 0, ko = ko0, newKo = -1;
+
+    function flood(p){
+      var col = b[p], sp = 0, q, a, t, v, k;
+      id++; memN = 0; libN = 0;
+      stack[sp++] = p; vis[p] = id;
+      while(sp){
+        q = stack[--sp]; mem[memN++] = q;
+        a = nb[q];
+        for(k=0;k<a.length;k++){
+          t = a[k]; v = b[t];
+          if(v===0){ if(lib[t]!==id){ lib[t]=id; libN++; } }
+          else if(v===col && vis[t]!==id){ vis[t]=id; stack[sp++]=t; }
+        }
+      }
+    }
+    function isEye(p, c){
+      var a = nb[p], d = diag[p], k, bad = 0;
+      for(k=0;k<a.length;k++) if(b[a[k]]!==c) return false;
+      for(k=0;k<d.length;k++) if(b[d[k]]!==c) bad++;
+      return a.length===4 ? bad<=1 : bad===0;
+    }
+    /* Places a stone. With policy=true it also refuses own-eye fills and self-atari
+       (unless the move captures). Leaves newKo set on success. */
+    function play(p, c, policy){
+      if(b[p]!==0 || p===ko) return false;
+      if(policy && isEye(p, c)) return false;
+      var opp = 3-c, a = nb[p], k, t, x, e = 0, o = 0;
+      for(k=0;k<a.length;k++){ t = b[a[k]]; if(t===0) e++; else if(t===opp) o++; }
+      capN = 0;
+      if(o===0 && e>=2){ b[p] = c; newKo = -1; return true; }
+      b[p] = c;
+      for(k=0;k<a.length;k++){
+        t = a[k];
+        if(b[t]===opp){
+          flood(t);
+          if(libN===0){
+            for(x=0;x<memN;x++) capBuf[capN++] = mem[x];
+            for(x=capN-memN;x<capN;x++) b[capBuf[x]] = 0;
+          }
+        }
+      }
+      if(e>=2){ newKo = -1; return true; }
+      flood(p);
+      if(libN===0 || (policy && libN===1 && capN===0)){
+        for(x=0;x<capN;x++) b[capBuf[x]] = opp;
+        b[p] = 0;
+        return false;
+      }
+      newKo = (capN===1 && memN===1 && libN===1) ? capBuf[0] : -1;
+      return true;
+    }
+    /* Capture an enemy group in atari or save an own group in atari near the last move. */
+    function atariMove(c, last){
+      var a = nb[last], k, t, q, x, lb, aa, cand = [last];
+      for(k=0;k<a.length;k++) cand.push(a[k]);
+      for(k=0;k<cand.length;k++){
+        t = cand[k];
+        if(b[t]===0) continue;
+        aa = nb[t]; x = 0;
+        for(q=0;q<aa.length;q++) if(b[aa[q]]===0) x++;
+        if(x>=2) continue;
+        flood(t);
+        if(libN===1){
+          lb = -1;
+          for(q=0;q<memN && lb<0;q++){
+            aa = nb[mem[q]];
+            for(x=0;x<aa.length;x++) if(b[aa[x]]===0){ lb = aa[x]; break; }
+          }
+          if(lb>=0 && play(lb, c, true)) return lb;
+        }
+      }
+      return -1;
+    }
+    var maxMoves = N*3;
+    function playout(c, passes, last){
+      var moves = 0, played, tries, p, q, start, jj;
+      while(passes<2 && moves<maxMoves){
+        played = false; p = -1;
+        if(last>=0 && rnd()<0.85){ p = atariMove(c, last); if(p>=0) played = true; }
+        if(!played){
+          for(tries=0;tries<14 && !played;tries++){
+            q = (rnd()*N)|0;
+            if(b[q]===0 && play(q, c, true)){ played = true; p = q; }
+          }
+        }
+        if(!played){
+          start = (rnd()*N)|0;
+          for(jj=0;jj<N && !played;jj++){
+            q = (start+jj) % N;
+            if(b[q]===0 && play(q, c, true)){ played = true; p = q; }
+          }
+        }
+        if(played){ passes = 0; ko = newKo; last = p; } else { passes++; ko = -1; last = -1; }
+        c = 3-c; moves++;
+      }
+    }
+    var vis2 = new Int32Array(N), sid = 0;
+    function areaScore(){
+      var bs = 0, ws = 0, k, p, sp, q, a, t, v, size, mask;
+      for(k=0;k<N;k++){ if(b[k]===1) bs++; else if(b[k]===2) ws++; }
+      sid++;
+      for(k=0;k<N;k++){
+        if(b[k]!==0 || vis2[k]===sid) continue;
+        sp = 0; size = 0; mask = 0;
+        stack[sp++] = k; vis2[k] = sid;
+        while(sp){
+          q = stack[--sp]; size++;
+          a = nb[q];
+          for(p=0;p<a.length;p++){
+            t = a[p]; v = b[t];
+            if(v===0){ if(vis2[t]!==sid){ vis2[t]=sid; stack[sp++]=t; } }
+            else mask |= v;
+          }
+        }
+        if(mask===1) bs += size; else if(mask===2) ws += size;
+      }
+      return bs - ws - komi;
+    }
+
+    function Node(move, col, parent){
+      this.move = move; this.color = col; this.parent = parent;
+      this.children = []; this.un = null; this.unN = 0; this.w = 0; this.v = 0;
+    }
+    function initUntried(node){
+      var cnt = 0, k, x, t;
+      for(k=0;k<N;k++) if(b[k]===0) cnt++;
+      node.un = new Int16Array(cnt); x = 0;
+      for(k=0;k<N;k++) if(b[k]===0) node.un[x++] = k;
+      for(k=cnt-1;k>0;k--){ x = (rnd()*(k+1))|0; t = node.un[k]; node.un[k] = node.un[x]; node.un[x] = t; }
+      node.unN = cnt;
+    }
+    var C = 0.6;
+    function select(node){
+      var best = null, bs = -1, ln = Math.log(node.v+1), k, ch, sc;
+      for(k=0;k<node.children.length;k++){
+        ch = node.children[k];
+        sc = ch.v===0 ? 1e9 + rnd() : ch.w/ch.v + C*Math.sqrt(ln/ch.v);
+        if(sc>bs){ bs = sc; best = ch; }
+      }
+      return best;
+    }
+
+    var rootNode = new Node(-2, 3-color, null);
+    var iters = 0;
+    while(iters<maxPlayouts){
+      if((iters&7)===0 && Date.now()>deadline) break;
+      iters++;
+      for(i=0;i<N;i++) b[i] = rootB[i];
+      ko = ko0;
+      var c = color, passes = oppPassed ? 1 : 0, last = lastMove, node = rootNode, terminal = false, child, mv, q;
+      for(;;){
+        if(node.un===null){
+          initUntried(node);
+          if(node===rootNode && oppPassed) node.children.push(new Node(-1, c, node));
+        }
+        if(passes>=2){ terminal = true; break; }
+        if(node.unN>0){
+          mv = -1;
+          while(node.unN>0){
+            q = node.un[--node.unN];
+            if(play(q, c, true)){ mv = q; break; }
+          }
+          if(mv>=0){
+            child = new Node(mv, c, node); node.children.push(child);
+            ko = newKo; last = mv; passes = 0; c = 3-c; node = child;
+            break;
+          }
+        }
+        if(node.children.length===0){
+          child = new Node(-1, c, node); node.children.push(child);
+          ko = -1; last = -1; passes++; c = 3-c; node = child;
+          continue;
+        }
+        child = select(node);
+        if(child.move<0){ passes++; ko = -1; last = -1; }
+        else { play(child.move, c, false); ko = newKo; last = child.move; passes = 0; }
+        c = 3-c; node = child;
+      }
+      if(!terminal) playout(c, passes, last);
+      var sc2 = areaScore();
+      for(var nd = node; nd && nd.parent; nd = nd.parent){
+        nd.v++;
+        if(sc2>0) nd.w += (nd.color===1 ? 1 : 0);
+        else if(sc2<0) nd.w += (nd.color===2 ? 1 : 0);
+        else nd.w += 0.5;
+      }
+      rootNode.v++;
+    }
+
+    var bestChild = null;
+    for(j=0;j<rootNode.children.length;j++){
+      m = rootNode.children[j];
+      if(!bestChild || m.v>bestChild.v) bestChild = m;
+    }
+    if(!bestChild) return {move:-1, wr:0, iters:iters};
+    return {move:bestChild.move, wr:bestChild.v ? bestChild.w/bestChild.v : 0, iters:iters};
+  }
+  return genMove;
+}
+
+
+var bot = {worker:null, url:null, id:0, thinking:false, noWorker:false};
+function botSource(){
+  return 'var genMove=('+botEngine.toString()+')();'
+    + 'onmessage=function(e){var d=e.data;var r=genMove(d.board,d.n,d.color,d.ko,d.level,d.komi,d.oppPassed,d.last);'
+    + 'postMessage({id:d.id,move:r.move,wr:r.wr});};';
+}
+function botWorker(){
+  if(bot.worker) return bot.worker;
+  if(bot.noWorker || typeof Worker==='undefined') return null;
+  try{
+    if(!bot.url) bot.url = URL.createObjectURL(new Blob([botSource()], {type:'text/javascript'}));
+    bot.worker = new Worker(bot.url);
+    bot.worker.onmessage = function(e){ botDone(e.data); };
+    bot.worker.onerror = function(){
+      bot.worker = null; bot.noWorker = true;
+      if(bot.thinking){ bot.thinking = false; kick(); }
+    };
+  }catch(err){ bot.worker = null; bot.noWorker = true; }
+  return bot.worker;
+}
+function botCancel(){
+  bot.id++;
+  if(bot.thinking){
+    bot.thinking = false;
+    if(bot.worker){ try{ bot.worker.terminate(); }catch(e){} bot.worker = null; }
+  }
+}
+function isBotTurn(){ return S.phase==='play' && !!S.bot && S.turn===S.bot; }
+function kick(){
+  if(!isBotTurn() || bot.thinking) return;
+  bot.thinking = true;
+  var id = ++bot.id;
+  showMsg('電腦思考中…', true);
+  var req = {id:id, board:S.board.slice(), n:S.size, color:S.turn, ko:S.ko, level:S.level||2,
+             komi:KOMI[S.size], oppPassed:S.passes>0, last:S.last};
+  var w = botWorker();
+  if(w){ w.postMessage(req); return; }
+  setTimeout(function(){
+    if(id!==bot.id) return;
+    var r = botEngine()(req.board, req.n, req.color, req.ko, req.level, req.komi, req.oppPassed, req.last, 0.5);
+    botDone({id:id, move:r.move, wr:r.wr});
+  }, 60);
+}
+function botDone(d){
+  if(d.id!==bot.id || !bot.thinking) return;
+  bot.thinking = false;
+  if(!isBotTurn()) return;
+  showMsg('');
+  if(d.move<0) pass(); else play(d.move);
+}
+
 /* ---------- setup (teaching) mode ---------- */
 function hasWork(){ return S.phase!=='over' && (S.moveNo>0 || S.board.some(function(v){ return v!==0; })); }
 function setupPush(){ S.setupHist.push(S.board.slice()); if(S.setupHist.length>300) S.setupHist.shift(); }
 function enterSetup(){
+  botCancel();
   S.phase='setup'; S.history=[]; S.setupHist=[]; S.caps={1:0,2:0};
   S.last=-1; S.ko=-1; S.passes=0; S.moveNo=0; S.dead=null; S.result=''; S.resigned=false;
   ui.preview=null; ui.bad=null;
@@ -656,8 +981,8 @@ function startPractice(){
   }
   S.phase='play'; S.history=[]; S.caps={1:0,2:0}; S.last=-1; S.ko=-1; S.passes=0; S.moveNo=0;
   S.dead=null; ui.bad=null; ui.preview=null;
-  afterChange();
   showMsg('開始演練，輪到'+NAME[S.turn]);
+  afterChange();
 }
 
 /* ---------- persistence ---------- */
@@ -670,6 +995,8 @@ function load(){
     if(!d || [9,13,19].indexOf(d.size)<0 || !Array.isArray(d.board) || d.board.length!==d.size*d.size || !Array.isArray(d.history) || !d.caps) return false;
     S = d; buildNb(d.size);
     S.setupHist = Array.isArray(S.setupHist) ? S.setupHist : [];
+    S.bot = (S.bot===1 || S.bot===2) ? S.bot : 0;
+    S.level = (S.level>=1 && S.level<=3) ? S.level : 2;
     return true;
   }catch(e){ return false; }
 }
@@ -702,10 +1029,10 @@ function sfx(captured){
 
 /* ---------- messages ---------- */
 var msgTimer = null;
-function showMsg(t){
+function showMsg(t, sticky){
   $('msg').textContent = t || '';
   clearTimeout(msgTimer);
-  if(t) msgTimer = setTimeout(function(){ $('msg').textContent=''; }, 3500);
+  if(t && !sticky) msgTimer = setTimeout(function(){ $('msg').textContent=''; }, 3500);
 }
 
 /* ---------- drawing ---------- */
@@ -854,7 +1181,7 @@ function render(){
     ctx.strokeStyle='rgba(180,40,25,0.9)'; ctx.lineWidth=Math.max(1.2,cell*0.06);
     ctx.strokeRect(px(S.ko)-ks/2, py(S.ko)-ks/2, ks, ks);
   }
-  if(S.phase==='play'){
+  if(S.phase==='play' && !isBotTurn()){
     var g = ui.preview!=null ? ui.preview : ui.hover;
     if(g!=null && S.board[g]===0){
       drawStone(px(g), py(g), S.turn, ui.preview!=null ? 0.62 : 0.45);
@@ -884,13 +1211,16 @@ function updateUI(){
   if(play) dot.className = 'dot sm ' + (S.turn===1 ? 'stone-b' : 'stone-w');
   var text;
   if(setup) text = '擺棋模式';
-  else if(play) text = '輪到'+NAME[S.turn]+' · 第 '+(S.moveNo+1)+' 手';
+  else if(play) text = '輪到'+NAME[S.turn]+(S.bot ? (S.turn===S.bot ? '（電腦）' : '（你）') : '')+' · 第 '+(S.moveNo+1)+' 手';
   else if(scoring) text = '數子中 · '+verdict(computeScore());
   else text = S.result ? ('對局結束 · '+S.result) : '對局結束';
   $('turn').textContent = text;
 
   $('capB').textContent = setup ? ('盤上 '+nb+' 子') : ('提 '+S.caps[1]+' 子');
   $('capW').textContent = setup ? ('盤上 '+nw+' 子') : ('提 '+S.caps[2]+' 子');
+  var botTurn = isBotTurn();
+  $('nameB').textContent = '黑棋' + (S.bot===1 ? ' · 電腦' : (S.bot===2 ? ' · 你' : ''));
+  $('nameW').textContent = '白棋' + (S.bot===2 ? ' · 電腦' : (S.bot===1 ? ' · 你' : ''));
   $('pB').classList.toggle('active', play && S.turn===1);
   $('pW').classList.toggle('active', play && S.turn===2);
 
@@ -899,6 +1229,8 @@ function updateUI(){
   $('dockScore').hidden = !scoring;
   $('dockOver').hidden = !over;
   $('setupHint').hidden = !setup;
+  $('btnPass').disabled = botTurn;
+  $('btnResign').disabled = botTurn;
   $('btnUndo').disabled = S.history.length===0;
   $('btnUndo2').disabled = S.history.length===0;
   if(!play) disarm();
@@ -923,7 +1255,7 @@ function updateUI(){
   }
   canvas.setAttribute('aria-label', '圍棋棋盤，'+S.size+' 路，'+text);
 }
-function afterChange(){ updateUI(); render(); save(); }
+function afterChange(){ updateUI(); render(); save(); kick(); }
 
 /* ---------- input ---------- */
 function hit(e){
@@ -940,6 +1272,7 @@ function commit(idx, type){
   if(S.phase==='setup'){ setupPlace(idx); return; }
   if(S.phase==='scoring'){ toggleDead(idx); return; }
   if(S.phase!=='play') return;
+  if(isBotTurn()){ ui.preview=null; showMsg('電腦思考中…', true); render(); return; }
   var touch = (type==='touch' || type==='pen');
   if(touch && ui.touchConfirm){
     if(ui.preview===idx){ play(idx); return; }
@@ -1004,9 +1337,26 @@ $('btnResign').addEventListener('click', function(){
   } else { disarm(); resign(); }
 });
 function syncSizeRadios(){
-  var radios = document.getElementsByName('size');
-  for(var i=0;i<radios.length;i++) radios[i].checked = (parseInt(radios[i].value,10)===S.size);
+  var i, radios = document.getElementsByName('size');
+  for(i=0;i<radios.length;i++) radios[i].checked = (parseInt(radios[i].value,10)===S.size);
+  radios = document.getElementsByName('opp');
+  for(i=0;i<radios.length;i++) radios[i].checked = (parseInt(radios[i].value,10)===(S.bot||0));
+  radios = document.getElementsByName('level');
+  for(i=0;i<radios.length;i++) radios[i].checked = (parseInt(radios[i].value,10)===(S.level||2));
+  $('levelRow').hidden = !S.bot;
 }
+function readNew(){
+  var o = {size:S.size, bot:0, level:S.level||2}, i, radios = document.getElementsByName('size');
+  for(i=0;i<radios.length;i++) if(radios[i].checked) o.size = parseInt(radios[i].value,10);
+  radios = document.getElementsByName('opp');
+  for(i=0;i<radios.length;i++) if(radios[i].checked) o.bot = parseInt(radios[i].value,10);
+  radios = document.getElementsByName('level');
+  for(i=0;i<radios.length;i++) if(radios[i].checked) o.level = parseInt(radios[i].value,10);
+  return o;
+}
+$('newBox').addEventListener('change', function(e){
+  if(e.target.name==='opp') $('levelRow').hidden = (e.target.value==='0');
+});
 var startArmed = false, startTimer = null;
 function disarmStart(){
   startArmed=false; clearTimeout(startTimer);
@@ -1021,13 +1371,12 @@ $('btnStart').addEventListener('click', function(){
     return;
   }
   disarmStart();
-  var radios = document.getElementsByName('size'), size = S.size;
-  for(var i=0;i<radios.length;i++) if(radios[i].checked) size = parseInt(radios[i].value,10);
-  newGame(size);
+  var o = readNew();
+  newGame(o.size, 'play', o.bot, o.level);
   layout();
   syncSizeRadios();
-  afterChange();
   showMsg('新局開始，黑棋先行');
+  afterChange();
 });
 function guard(id, idle, ask, need, fn){
   var b = $(id), armed = false, t = null;
@@ -1038,9 +1387,8 @@ function guard(id, idle, ask, need, fn){
   });
 }
 guard('btnSetupNew', '空盤擺棋', '再點一次確認', hasWork, function(){
-  var radios = document.getElementsByName('size'), size = S.size;
-  for(var i=0;i<radios.length;i++) if(radios[i].checked) size = parseInt(radios[i].value,10);
-  newGame(size, 'setup');
+  var o = readNew();
+  newGame(o.size, 'setup', o.bot, o.level);
   layout();
   syncSizeRadios();
   afterChange();
@@ -1059,11 +1407,11 @@ $('btnAuto').addEventListener('click', function(){ showMsg('判斷中…'); setT
 $('btnUndo2').addEventListener('click', undo);
 $('btnSetup2').addEventListener('click', enterSetup);
 $('btnAgain').addEventListener('click', function(){
-  newGame(S.size);
+  newGame(S.size, 'play', S.bot, S.level);
   layout();
   syncSizeRadios();
-  afterChange();
   showMsg('新局開始，黑棋先行');
+  afterChange();
 });
 $('btnConfirm').addEventListener('click', confirmResult);
 $('btnResume').addEventListener('click', resume);
@@ -1081,6 +1429,7 @@ syncSizeRadios();
 updateUI();
 render();
 if(restored && S.moveNo>0) showMsg('已接續上次的對局');
+kick();
 if(window.ResizeObserver){
   new ResizeObserver(function(){ layout(); render(); }).observe($('wrap'));
 } else {
