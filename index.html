@@ -303,6 +303,7 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
         <div class="opts">
           <label><input type="checkbox" id="optTouch"> 觸控時先預覽，再點同一處落子</label>
           <label><input type="checkbox" id="optFx"> 提子爆炸特效</label>
+          <label><input type="checkbox" id="optAtari"> 叫吃抖動（只剩一口氣的棋會抖）</label>
           <label><input type="checkbox" id="optSound"> 音效（落子、爆炸）</label>
         </div>
 
@@ -331,6 +332,7 @@ details ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
       <li>9 路、13 路、19 路三種棋盤，可在新局時選擇。</li>
       <li>完整的基本規則：提子、禁入點（不能自殺）、打劫、虛手、悔棋與認輸。</li>
       <li>可以對電腦下棋，有初、中、高三種強度，也可以兩個人同機輪流下。</li>
+      <li>只剩一口氣（叫吃）的棋子會每三秒輕輕抖一下，提醒快被吃掉了。</li>
       <li>提子時棋子會先抖動再爆炸，有音效；不喜歡可以用「特效：開」按鈕一鍵關掉，恢復簡潔畫面。</li>
       <li>觸控操作可先預覽落點，再點同一處落子，避免手指點錯。</li>
       <li>擺棋教學模式：自由放置黑子或白子、用橡皮擦拿掉棋子，擺好棋形後指定黑先或白先，開始演練。</li>
@@ -360,7 +362,7 @@ var OPT_KEY = 'suishou-weiqi-opts-v1';
 var LETTERS = 'ABCDEFGHJKLMNOPQRST';
 
 var S = null;
-var ui = {hover:null, preview:null, touchConfirm:true, sound:true, newOpen:false, tool:'b', bad:null, fx:true};
+var ui = {hover:null, preview:null, touchConfirm:true, sound:true, newOpen:false, tool:'b', bad:null, fx:true, atari:true};
 var NB = [];
 var geom = {};
 var bg = null;
@@ -1019,12 +1021,13 @@ function load(){
 function reducedMotion(){
   try{ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; }
 }
-function saveOpts(){ try{ localStorage.setItem(OPT_KEY, JSON.stringify({touch:ui.touchConfirm, sound:ui.sound, fx:ui.fx})); }catch(e){} }
+function saveOpts(){ try{ localStorage.setItem(OPT_KEY, JSON.stringify({touch:ui.touchConfirm, sound:ui.sound, fx:ui.fx, atari:ui.atari})); }catch(e){} }
 function loadOpts(){
   try{
     var o = JSON.parse(localStorage.getItem(OPT_KEY)||'null');
     if(o){ ui.touchConfirm = o.touch!==false; ui.sound = o.sound!==false; }
     ui.fx = (o && typeof o.fx==='boolean') ? o.fx : !reducedMotion();
+    ui.atari = (o && typeof o.atari==='boolean') ? o.atari : !reducedMotion();
   }catch(e){}
 }
 
@@ -1076,14 +1079,16 @@ function sizzleSound(delay, dur){
   var ac = audioCtx(); if(!ac) return;
   try{
     var t = ac.currentTime + delay;
-    var src = ac.createBufferSource(); src.buffer = getNoise(ac);
-    var hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2800;
-    var g = ac.createGain();
+    var o = ac.createOscillator(), g = ac.createGain(), lf = ac.createOscillator(), lg = ac.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(520, t+dur);
+    lf.frequency.setValueAtTime(7, t); lf.frequency.linearRampToValueAtTime(18, t+dur);
+    lg.gain.value = 0.05; lf.connect(lg); lg.connect(g.gain);
     g.gain.setValueAtTime(0.0001, t);
-    for(var k=0.0;k<dur;k+=0.03) g.gain.setValueAtTime(0.01 + Math.random()*0.09, t+k);
-    g.gain.setValueAtTime(0.0001, t+dur);
-    src.connect(hp); hp.connect(g); g.connect(ac.destination);
-    src.start(t); src.stop(t+dur+0.02);
+    g.gain.linearRampToValueAtTime(0.10, t+dur*0.9);
+    g.gain.linearRampToValueAtTime(0.0001, t+dur);
+    o.connect(g); g.connect(ac.destination);
+    o.start(t); lf.start(t); o.stop(t+dur+0.02); lf.stop(t+dur+0.02);
   }catch(e){}
 }
 function sfx(captured){
@@ -1210,9 +1215,58 @@ function drawStone(x,y,color,alpha){
   if(alpha<1) ctx.globalAlpha = 1;
 }
 
+/* ---------- atari warning: stones with one liberty tremble twice every two seconds ---------- */
+var ATARI_PERIOD = 3000, ATARI_BURST = 220, ATARI_GAP = 80;
+var atariIdx = [], atariMap = {}, atariSig = '', atariEpoch = 0, atariRaf = 0, atariTimer = 0;
+function computeAtari(){
+  var res = [], seen = {}, i, g;
+  if(S.phase==='play' || S.phase==='setup'){
+    for(i=0;i<S.board.length;i++){
+      if(S.board[i] && !seen[i]){
+        g = group(S.board, i);
+        g.stones.forEach(function(s){ seen[s] = 1; });
+        if(g.libs.size===1) res = res.concat(g.stones);
+      }
+    }
+  }
+  res.sort(function(a,b){ return a-b; });
+  var sig = res.join(',');
+  if(sig!==atariSig){
+    atariSig = sig; atariIdx = res; atariMap = {};
+    res.forEach(function(s){ atariMap[s] = 1; });
+    atariEpoch = performance.now();
+    atariRestart();
+  }
+}
+function atariActive(now){ return ((now - atariEpoch) % ATARI_PERIOD) < ATARI_BURST; }
+function atariOffset(now){
+  var t = (now - atariEpoch) % ATARI_PERIOD, k, s0, u;
+  for(k=0;k<1;k++){
+    s0 = k*(ATARI_BURST + ATARI_GAP);
+    if(t>=s0 && t<s0+ATARI_BURST){
+      u = (t - s0)/ATARI_BURST;
+      return [Math.sin(u*Math.PI*4)*(1-u*0.35)*geom.cell*0.05, Math.sin(u*Math.PI*4+1)*geom.cell*0.014];
+    }
+  }
+  return [0,0];
+}
+function atariRestart(){
+  cancelAnimationFrame(atariRaf); clearTimeout(atariTimer); atariRaf = 0; atariTimer = 0;
+  if(!ui.atari || !atariIdx.length) return;
+  var ph = (performance.now() - atariEpoch) % ATARI_PERIOD;
+  if(ph < ATARI_BURST) atariRaf = requestAnimationFrame(atariFrame);
+  else atariTimer = setTimeout(atariRestart, ATARI_PERIOD - ph + 5);
+}
+function atariFrame(){
+  atariRaf = 0;
+  render();
+  if(atariActive(performance.now())) atariRaf = requestAnimationFrame(atariFrame);
+  else atariRestart();
+}
+
 /* ---------- capture effects: shake, then bomb blast ---------- */
 var fx = {list:[], until:0, raf:0};
-var FX_SHAKE = 380, FX_BOOM = 750;
+var FX_SHAKE = 900, FX_BOOM = 750;
 function fxRemaining(){ return Math.max(0, fx.until - performance.now()); }
 function fxClear(){
   fx.list = []; fx.until = 0;
@@ -1235,7 +1289,7 @@ function fxAdd(indices, color, from){
   fx.until = Math.max(fx.until, now + (count-1)*step + FX_SHAKE + FX_BOOM);
   if(ui.sound){
     var m = Math.min(count,6), v = 0.95/Math.sqrt(m), k;
-    sizzleSound(0, Math.min(0.5, FX_SHAKE/1000));
+    sizzleSound(0, FX_SHAKE/1000);
     for(k=0;k<m;k++) boomSound((k*step + FX_SHAKE)/1000, v);
     if(count>6) boomSound(((count-1)*step + FX_SHAKE)/1000, 1.0);
   }
@@ -1270,20 +1324,18 @@ function fxDraw(now){
     x = pad + (e.idx%n)*cell; y = pad + ((e.idx/n)|0)*cell;
     if(t<0){ drawStone(x,y,e.color,1); continue; }
     if(t<FX_SHAKE){
-      var u = t/FX_SHAKE, amp = cell*(0.02+0.10*u), fq = 0.05+0.04*u;
-      var ox = Math.sin(t*fq*1.7 + e.idx)*amp, oy = Math.cos(t*fq*2.3 + e.idx*0.7)*amp*0.6;
-      var sc = 1 + 0.10*u + 0.03*Math.sin(t*0.06);
+      var u = t/FX_SHAKE, ue = u*u*(3-2*u), amp = cell*(0.015+0.075*ue), ph = t*(0.030+0.030*ue);
+      var ox = Math.sin(ph*6.283 + e.idx)*amp, oy = Math.cos(ph*6.283*1.3 + e.idx*0.7)*amp*0.5;
+      var sc = 1 + 0.12*ue + 0.015*Math.sin(ph*6.283*2);
+      if(ue>0.15){
+        var gr = cell*(0.55+0.55*ue), gg = ctx.createRadialGradient(x,y,r*0.6,x,y,gr);
+        gg.addColorStop(0,'rgba(255,60,30,'+(0.45*ue).toFixed(3)+')'); gg.addColorStop(1,'rgba(255,60,30,0)');
+        ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(x,y,gr,0,Math.PI*2); ctx.fill();
+      }
       ctx.save(); ctx.translate(x+ox, y+oy); ctx.scale(sc,sc);
       drawStone(0,0,e.color,1);
-      ctx.fillStyle = 'rgba(255,90,30,'+(0.5*u*(0.6+0.4*Math.sin(t*0.05))).toFixed(3)+')';
+      ctx.fillStyle = 'rgba(235,30,20,'+(0.72*ue*(0.82+0.18*Math.sin(ph*6.283*2))).toFixed(3)+')';
       ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
-      var tx = r*0.95, ty = -r*1.35*(1-0.4*u);
-      ctx.strokeStyle = '#5b3b1a'; ctx.lineWidth = Math.max(1.5, cell*0.06); ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(r*0.45,-r*0.8); ctx.quadraticCurveTo(r*0.85,-r*1.05, tx, ty); ctx.stroke();
-      ctx.lineCap = 'butt';
-      var sr = cell*(0.17+0.07*Math.sin(t*0.09)), sg = ctx.createRadialGradient(tx,ty,0,tx,ty,sr);
-      sg.addColorStop(0,'rgba(255,255,200,1)'); sg.addColorStop(0.4,'rgba(255,190,50,0.9)'); sg.addColorStop(1,'rgba(255,110,20,0)');
-      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(tx,ty,sr,0,Math.PI*2); ctx.fill();
       ctx.restore();
       continue;
     }
@@ -1336,6 +1388,7 @@ function render(){
   var px=function(i){ return pad+(i%n)*cell; };
   var py=function(i){ return pad+((i/n)|0)*cell; };
   var sc = (S.phase==='scoring' || S.phase==='over') ? computeScore() : null;
+  var ao = (ui.atari && atariIdx.length && (S.phase==='play' || S.phase==='setup')) ? atariOffset(nowT) : null;
   var i, v;
   if(sc){
     var sz = cell*0.3;
@@ -1350,7 +1403,7 @@ function render(){
     v = S.board[i];
     if(v){
       var isDead = !!(S.dead && S.dead[i]);
-      drawStone(px(i), py(i), v, isDead ? 0.4 : 1);
+      drawStone(px(i) + (ao && atariMap[i] ? ao[0] : 0), py(i) + (ao && atariMap[i] ? ao[1] : 0), v, isDead ? 0.4 : 1);
       if(isDead){
         var xs = cell*0.2;
         ctx.strokeStyle='rgba(200,40,25,0.95)'; ctx.lineWidth=Math.max(1.6,cell*0.075); ctx.lineCap='round';
@@ -1363,7 +1416,7 @@ function render(){
   }
   if(S.phase==='play' && S.last>=0 && S.board[S.last]){
     ctx.fillStyle='#e5483a';
-    ctx.beginPath(); ctx.arc(px(S.last), py(S.last), cell*0.14, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(px(S.last) + (ao && atariMap[S.last] ? ao[0] : 0), py(S.last) + (ao && atariMap[S.last] ? ao[1] : 0), cell*0.14, 0, Math.PI*2); ctx.fill();
   }
   if(S.phase==='setup'){
     var ring = function(p){
@@ -1459,7 +1512,7 @@ function updateUI(){
   }
   canvas.setAttribute('aria-label', '圍棋棋盤，'+S.size+' 路，'+text);
 }
-function afterChange(){ updateUI(); render(); save(); kick(); }
+function afterChange(){ computeAtari(); updateUI(); render(); save(); kick(); }
 
 /* ---------- input ---------- */
 function hit(e){
@@ -1624,17 +1677,31 @@ $('optTouch').addEventListener('change', function(e){ ui.touchConfirm=e.target.c
 $('optSound').addEventListener('change', function(e){ ui.sound=e.target.checked; saveOpts(); });
 function syncFxUI(){
   $('optFx').checked = ui.fx;
-  var b = $('btnFx');
-  b.textContent = ui.fx ? '特效：開' : '特效：關';
-  b.setAttribute('aria-pressed', ui.fx ? 'true' : 'false');
+  $('optAtari').checked = ui.atari;
+  var b = $('btnFx'), any = ui.fx || ui.atari;
+  b.textContent = any ? '特效：開' : '特效：關';
+  b.setAttribute('aria-pressed', any ? 'true' : 'false');
 }
 function setFx(on){
   ui.fx = !!on;
   if(!ui.fx) fxClear();
   saveOpts(); syncFxUI(); render();
 }
+function setAtari(on){
+  ui.atari = !!on;
+  atariEpoch = performance.now();
+  atariRestart();
+  saveOpts(); syncFxUI(); render();
+}
 $('optFx').addEventListener('change', function(e){ setFx(e.target.checked); });
-$('btnFx').addEventListener('click', function(){ setFx(!ui.fx); });
+$('optAtari').addEventListener('change', function(e){ setAtari(e.target.checked); });
+$('btnFx').addEventListener('click', function(){
+  var on = !(ui.fx || ui.atari);
+  ui.fx = on; ui.atari = on;
+  if(!on) fxClear();
+  atariEpoch = performance.now(); atariRestart();
+  saveOpts(); syncFxUI(); render();
+});
 
 /* ---------- start ---------- */
 loadOpts();
@@ -1645,6 +1712,7 @@ var restored = load();
 if(!restored) newGame(Math.min(window.innerWidth, window.innerHeight) < 560 ? 13 : 19);
 layout();
 syncSizeRadios();
+computeAtari();
 updateUI();
 render();
 if(restored && S.moveNo>0) showMsg('已接續上次的對局');
